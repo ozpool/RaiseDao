@@ -1,0 +1,152 @@
+# Architecture
+
+RaiseDAO is a milestone-gated crowdfunding platform. The chain is the source of
+truth for **custody, voting, and timelocks**. Everything else — descriptions,
+evidence files, tallies for display, notifications, scam heuristics — is
+off-chain and treated as a fast, rebuildable mirror of chain state.
+
+## 1. On-chain vs off-chain
+
+| Concern                            | Where             | Why                                               |
+| ---------------------------------- | ----------------- | ------------------------------------------------- |
+| USDC custody                       | Vault contract    | Only a passing vote can move funds.               |
+| Governance token supply/balances   | GovToken contract | Vote weight.                                      |
+| Vote tallies (canonical)           | Governor contract | Chain is authoritative.                           |
+| Milestone schedule + release logic | Vault contract    | Release must check it.                            |
+| Campaign title/description/hero    | MongoDB           | Free-text, off-chain.                             |
+| Evidence files (video/PDF/img)     | IPFS              | Large blobs; only the CID is referenced on-chain. |
+| Vote tallies (display cache)       | MongoDB           | Fast reads; recomputable from chain.              |
+| Scam-heuristic flags               | MongoDB           | Platform policy; never binds on-chain.            |
+
+## 2. System diagram
+
+```
+  Browser (Next.js + wagmi + R3F + Socket.IO client)
+     |  REST + WebSocket            ^ wallet tx (read/write direct to chain)
+     v                              |
+  Express API (TypeScript) ----------------------------+
+   - routes: /campaigns /investments /votes /evidence  |
+   - SIWE + JWT auth                                    |
+   - Socket.IO rooms per campaign                       |
+   - in-process indexer (ethers)  --- writes --> MongoDB
+   - Redis pub/sub (Upstash) for cross-instance fan-out |
+        |            |              |                    |
+        v            v              v                    v
+     MongoDB       IPFS          Resend            Arbitrum Sepolia
+   (cache,       (evidence)    (emails)           RaiseFactory
+    profiles,                                       -> Vault + GovToken + Governor
+    analytics)                                         (one trio per campaign)
+```
+
+Three load-bearing decisions:
+
+1. **Per-campaign factory deployment** — each campaign gets its own vault, token,
+   and governor (deployed as EIP-1167 minimal-proxy clones for cheap gas). A
+   compromise in one campaign cannot touch another.
+2. **The indexer is the bridge to Mongo** — the API never polls the chain for
+   state; it reads denormalized Mongo data the indexer maintains.
+3. **WebSocket over an event-driven backend** — the indexer publishes to Redis
+   pub/sub; the Socket.IO server broadcasts to the campaign's room, so votes feel
+   live without polling.
+
+## 3. Components
+
+| Layer     | Owns                                                                  | Does NOT own                                    |
+| --------- | --------------------------------------------------------------------- | ----------------------------------------------- |
+| Frontend  | Browse, wizard, dashboards, voting UI, evidence viewer, live tallies  | Vote logic or fund release (both contract-side) |
+| API       | Metadata CRUD, IPFS pinning, WS fan-out, scam flagging, notifications | Voting or moving funds                          |
+| Indexer   | Subscribes to every campaign's events; writes Mongo; publishes Redis  | Originating chain writes                        |
+| MongoDB   | Metadata, profiles, denormalized tallies, evidence CIDs, analytics    | Voting truth (chain is canonical)               |
+| Contracts | Custody, token mint, vote logic, release authorization, refunds       | Descriptions, bios, demo content                |
+
+## 4. Contract surface
+
+**RaiseFactory** — `deploy(CampaignParams)` clones GovToken + RaiseVault +
+MilestoneGovernor via EIP-1167, wires roles (vault is token minter, governor
+administers vault), emits `CampaignDeployed(id, vault, token, governor, founder)`.
+
+**GovToken** — `ERC20Votes`, **soulbound** (transfers reverted; mint/burn only).
+Minted by the vault on contribution. Delegation still works (delegation moves
+voting power, not tokens), which kills the buy-then-vote and founder-buyback
+attacks at the root.
+
+**RaiseVault** — holds USDC, milestone schedule, and per-investor share.
+
+- `contribute(amount)` — pulls USDC, mints GovToken (CEI + ReentrancyGuard).
+- `releaseMilestone(id)` — `onlyGovernor`; transfers the slice (minus protocol fee) to founder.
+- `markFailed(id)` — `onlyGovernor`.
+- `claimRefund()` — pro-rata of remaining USDC, burns the caller's shares.
+- Invariant: `totalReleased + remaining == totalRaised - refundsClaimed`.
+
+**MilestoneGovernor** — extends OpenZeppelin Governor. Voting delay 1 day, period
+3 days, configurable quorum, 2-day timelock on execution. `propose` is
+founder-only and encodes `vault.releaseMilestone(id)`. Snapshot-based weight
+prevents buy-then-vote.
+
+## 5. Data flow: launch -> fund -> vote -> resolve
+
+```
+LAUNCH   founder fills wizard -> API stores draft -> founder signs
+         RaiseFactory.deploy -> trio deployed -> CampaignDeployed emitted
+         -> indexer sets campaign.status = "fundraising"
+FUND     investor: USDC.approve + Vault.contribute -> GovToken minted
+         -> indexer updates totals -> Redis -> Socket.IO room updates UI live
+EVIDENCE founder uploads file -> API pins to IPFS -> CID
+         -> Governor.propose(milestoneId, descHash, cid) -> voting window opens
+VOTE     investor: Governor.castVote(proposalId, support); weight = snapshot balance
+         -> VoteCast emitted -> indexer updates tally -> Redis -> live bar moves
+RESOLVE  after window: anyone calls execute()
+         pass -> Vault.releaseMilestone (slice to founder, minus fee)
+         fail -> Vault.markFailed (unlocks pro-rata refunds)
+REFUND   after grace: investor calls Vault.claimRefund -> USDC out, shares burned
+```
+
+## 6. Indexer design
+
+- **Discovery:** watches `RaiseFactory` for `CampaignDeployed`, auto-subscribes to
+  each new trio.
+- **Reorg safety:** waits a confirmation depth before treating an event as final.
+- **Checkpoint:** stores `last_block` in Mongo; replays on restart.
+- **Idempotency:** events keyed by `(txHash, logIndex)`; all writes are upserts.
+- **In-process:** runs as an interval inside the API process, **not** a separate
+  worker — the free hosting tier cannot reliably keep two services awake. Split it
+  out later if/when hosting is paid.
+- **Mongo discipline:** store denormalized state and a light activity feed, **not**
+  raw event logs — the chain already is that ledger. This keeps us under the
+  free-tier 512 MB cap indefinitely.
+
+## 7. Realtime
+
+Redis pub/sub topic per campaign; Socket.IO subscribes and broadcasts to room
+`campaign:<id>`. If the indexer lags, the UI shows "syncing" when stale > 30s and
+re-syncs from REST on focus. The critical `execute()` call needs no UI — anyone
+can trigger it.
+
+## 8. Failure modes
+
+| Mode                                   | Defense                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Founder ships milestone 1, ghosts on 2 | Investors fail milestone 2; pro-rata refund of the rest. Loss bounded to slice 1.          |
+| Whale dominance                        | Quorum + transparency; capital reflects skin-in-the-game. Quadratic voting is future work. |
+| Founder buys tokens to self-approve    | GovToken is soulbound (mint/burn only) — cannot be acquired.                               |
+| Indexer behind at vote close           | Tally is recomputable from chain; UI shows "syncing"; `execute()` is permissionless.       |
+| IPFS evidence unpinned                 | Dual-pin (Pinata + web3.storage); alert if both fail.                                      |
+| Funds frozen (no quorum ever)          | Campaign-expiry: after an inactivity window, anyone can trigger refund mode.               |
+
+## 9. Deployment topology
+
+| Piece         | Host                    | Notes                                                                       |
+| ------------- | ----------------------- | --------------------------------------------------------------------------- |
+| Frontend      | Vercel Hobby            | Edge, no cold start.                                                        |
+| API + indexer | Render free web service | Sleeps after 15 min; UptimeRobot pings `/health` every 10 min to keep warm. |
+| Database      | MongoDB Atlas M0        | 512 MB free.                                                                |
+| Redis         | Upstash                 | 500K commands/month free.                                                   |
+| Contracts     | Arbitrum Sepolia        | Factory deployed once; trios on demand.                                     |
+
+## 10. Scope (Balanced)
+
+**Built:** soulbound token, EIP-1167 clones, protocol fee, reorg-safe + idempotent
+indexer, dual-pin IPFS, Slither in CI, delegate voting, campaign-expiry refund.
+
+**Documented as pattern, not enforced:** KYC/AML, geofencing, account-abstraction
+gasless UX, fiat on-ramp, multisig-to-propose. See README "Known Scope Boundaries".
