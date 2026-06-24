@@ -47,6 +47,10 @@ contract RaiseFactory {
         uint256 indexed id, address vault, address token, address governor, address indexed founder
     );
 
+    /// @dev Proposing is founder-only and founders hold no soulbound votes, so a
+    ///      nonzero proposal threshold would make every campaign un-proposable.
+    error NonZeroProposalThreshold();
+
     constructor(
         IERC20 usdc_,
         address feeRecipient_,
@@ -69,6 +73,8 @@ contract RaiseFactory {
         external
         returns (address vault, address token, address governor)
     {
+        if (p.proposalThreshold != 0) revert NonZeroProposalThreshold();
+
         token = govTokenImpl.clone();
         vault = vaultImpl.clone();
 

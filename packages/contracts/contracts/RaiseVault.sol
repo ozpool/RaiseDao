@@ -66,6 +66,9 @@ contract RaiseVault is Initializable, ReentrancyGuardTransient {
     error RefundsNotOpen();
     error NothingToRefund();
     error BadSchedule();
+    error AlreadyFailed();
+    error DeadlineNotReached();
+    error NoMilestoneToFail();
 
     event Contributed(address indexed investor, uint256 amount, uint256 votesMinted);
     event MilestoneReleased(uint256 indexed index, uint256 toFounder, uint256 fee);
@@ -126,6 +129,7 @@ contract RaiseVault is Initializable, ReentrancyGuardTransient {
 
     /// @notice Release the next milestone tranche to the founder, net of protocol fee.
     function releaseMilestone(uint256 index) external onlyGovernor nonReentrant {
+        if (refundsOpen) revert AlreadyFailed();
         Milestone storage m = _take(index);
         m.status = MilestoneStatus.Released;
 
@@ -142,8 +146,25 @@ contract RaiseVault is Initializable, ReentrancyGuardTransient {
         emit MilestoneReleased(index, toFounder, fee);
     }
 
-    /// @notice Fail the next milestone, opening pro-rata refunds of the remainder.
-    function markFailed(uint256 index) external onlyGovernor {
+    /// @notice Governor fails the next milestone, opening pro-rata refunds.
+    function markFailed(uint256 index) external onlyGovernor nonReentrant {
+        if (refundsOpen) revert AlreadyFailed();
+        _fail(index);
+    }
+
+    /// @notice Permissionless escape hatch: once the next milestone's deadline has
+    ///         passed without a release, anyone may fail it so a passive founder
+    ///         cannot lock investor funds forever.
+    function forceFail() external nonReentrant {
+        if (refundsOpen) revert AlreadyFailed();
+        uint256 i = currentMilestone;
+        if (i >= milestones.length) revert NoMilestoneToFail();
+        if (block.timestamp <= milestones[i].deadline) revert DeadlineNotReached();
+        _fail(i);
+    }
+
+    /// @dev Snapshot the remaining balance and open refunds for milestone `index`.
+    function _fail(uint256 index) private {
         Milestone storage m = _take(index);
         m.status = MilestoneStatus.Failed;
 

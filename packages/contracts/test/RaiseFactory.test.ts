@@ -116,4 +116,13 @@ describe('RaiseFactory', () => {
     expect(await a.token.getAddress()).to.not.equal(await b.token.getAddress());
     expect(a.governor).to.not.equal(b.governor);
   });
+
+  it('rejects a campaign whose founder could never propose (nonzero threshold)', async () => {
+    const { factory, founder } = await loadFixture(deploy);
+    const bad = { ...params(founder.address), proposalThreshold: 1 };
+    await expect(factory.deploy(bad)).to.be.revertedWithCustomError(
+      factory,
+      'NonZeroProposalThreshold',
+    );
+  });
 });
