@@ -1,0 +1,33 @@
+@import 'tailwindcss';
+@import '../styles/tokens.css';
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-void);
+  color: var(--color-paper);
+  font-family: var(--font-sans);
+}
+
+/* Lenis smooth scroll — recommended base styles so the library can take over the
+   scroll position without the native behaviour fighting it. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* Reduced motion is a requirement, not a toggle (docs/UI.md §1). The Lenis
+   provider already skips smoothing; this also neutralises native smooth jumps. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
