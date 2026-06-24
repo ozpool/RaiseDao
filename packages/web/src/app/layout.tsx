@@ -3,8 +3,6 @@ import type { ReactNode } from 'react';
 import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import { LenisProvider } from '@/components/providers/LenisProvider';
-import { Header } from '@/components/chrome/Header';
-import { Footer } from '@/components/chrome/Footer';
 
 // Self-hosted at build time (zero layout shift, no external request at runtime).
 const sans = IBM_Plex_Sans({
@@ -30,11 +28,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body className="min-h-screen antialiased">
-        <LenisProvider>
-          <Header />
-          <main>{children}</main>
-          <Footer />
-        </LenisProvider>
+        <LenisProvider>{children}</LenisProvider>
       </body>
     </html>
   );
