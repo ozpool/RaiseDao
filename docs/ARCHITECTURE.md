@@ -134,7 +134,41 @@ Redis pub/sub topic per campaign; Socket.IO subscribes and broadcasts to room
 re-syncs from REST on focus. The critical `execute()` call needs no UI — anyone
 can trigger it.
 
-## 8. Failure modes
+## 8. API surface
+
+All responses are JSON. Protected routes require a `Bearer` JWT, obtained by
+signing a SIWE challenge. The indexer keeps the read models these routes serve
+up to date; writes that change on-chain state go through the contracts, not here.
+
+### REST
+
+| Method | Path           | Auth   | Request                                           | Response                                        |
+| ------ | -------------- | ------ | ------------------------------------------------- | ----------------------------------------------- |
+| GET    | `/health`      | none   | —                                                 | `{ status, uptime, db, timestamp }`             |
+| POST   | `/auth/nonce`  | none   | `{ address }`                                     | `{ nonce }` to embed in the SIWE message        |
+| POST   | `/auth/verify` | none   | `{ message, signature }`                          | `{ token, address, roles }`                     |
+| GET    | `/auth/me`     | bearer | —                                                 | the session claims (`address`, `roles`)         |
+| POST   | `/evidence`    | bearer | multipart: `file`, `campaignId`, `milestoneIndex` | `{ cid, provider, campaignId, milestoneIndex }` |
+
+`POST /evidence` returns `413` when the file exceeds `EVIDENCE_MAX_BYTES` and
+`502` when every IPFS provider fails. Campaign/analytics read endpoints are M4+.
+
+### WebSocket (Socket.IO)
+
+A client emits `join` / `leave` with a `campaignId`. On join the server replies
+with `campaign:sync` (a snapshot of the campaign's rollups so the client re-syncs
+after a reconnect), then streams `campaign:event` for each new on-chain event.
+The payload is `{ channel, type, campaignId, block, data }` where `channel` is
+`fund | vote | state`, so a client subscribes by concern. Rooms are
+`campaign:<id>`; the Upstash Redis adapter fans events across instances.
+
+### Email
+
+Transactional email goes out via Resend on vote-open (`ProposalCreated`) and
+vote-close (`ProposalQueued`) to contributors who opted in with an email.
+Recipients are bcc'd so no investor sees another's address.
+
+## 9. Failure modes
 
 | Mode                                   | Defense                                                                                    |
 | -------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -146,7 +180,7 @@ can trigger it.
 | IPFS evidence unpinned                 | Dual-pin (Pinata + web3.storage); alert if both fail.                                      |
 | Funds frozen (no quorum ever)          | Campaign-expiry: after an inactivity window, anyone can trigger refund mode.               |
 
-## 9. Deployment topology
+## 10. Deployment topology
 
 | Piece         | Host                    | Notes                                                                       |
 | ------------- | ----------------------- | --------------------------------------------------------------------------- |
@@ -156,7 +190,7 @@ can trigger it.
 | Redis         | Upstash                 | 500K commands/month free.                                                   |
 | Contracts     | Arbitrum Sepolia        | Factory deployed once; trios on demand.                                     |
 
-## 10. Scope (Balanced)
+## 11. Scope (Balanced)
 
 **Built:** soulbound token, EIP-1167 clones, protocol fee, reorg-safe + idempotent
 indexer, dual-pin IPFS, Slither in CI, delegate voting, campaign-expiry refund.
@@ -164,20 +198,20 @@ indexer, dual-pin IPFS, Slither in CI, delegate voting, campaign-expiry refund.
 **Documented as pattern, not enforced:** KYC/AML, geofencing, account-abstraction
 gasless UX, fiat on-ramp, multisig-to-propose. See README "Known Scope Boundaries".
 
-## 11. Environment & secrets
+## 12. Environment & secrets
 
 Every package validates its env through `@raisedao/shared` (zod); a missing or
 malformed variable fails fast at boot. Secrets live only in `.env` (git-ignored); a
 committed `.env.example` documents each key. Never commit a deployer private key or
 service token.
 
-| Package     | Keys (representative)                                                                                           |
-| ----------- | --------------------------------------------------------------------------------------------------------------- |
-| `contracts` | `RPC_URL`, `DEPLOYER_PRIVATE_KEY`, `ARBISCAN_API_KEY`                                                           |
-| `api`       | `MONGO_URI`, `REDIS_URL`, `JWT_SECRET`, `RPC_URL`, `WS_RPC_URL`, `FACTORY_ADDR`, `PINATA_JWT`, `RESEND_API_KEY` |
-| `web`       | `NEXT_PUBLIC_RPC_URL`, `NEXT_PUBLIC_FACTORY_ADDR`, `NEXT_PUBLIC_USDC_ADDR`, `NEXT_PUBLIC_SOCKET_URL`            |
+| Package     | Keys (representative)                                                                                                        |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `contracts` | `RPC_URL`, `DEPLOYER_PRIVATE_KEY`, `ARBISCAN_API_KEY`                                                                        |
+| `api`       | `MONGODB_URI`, `REDIS_URL`, `JWT_SECRET`, `RPC_URL`, `FACTORY_ADDRESS`, `PINATA_JWT`, `WEB3_STORAGE_TOKEN`, `RESEND_API_KEY` |
+| `web`       | `NEXT_PUBLIC_RPC_URL`, `NEXT_PUBLIC_FACTORY_ADDR`, `NEXT_PUBLIC_USDC_ADDR`, `NEXT_PUBLIC_SOCKET_URL`                         |
 
-## 12. Testing strategy
+## 13. Testing strategy
 
 - Contracts: Hardhat unit tests for every path; Foundry fuzz + invariant for the
   release/refund accounting; Slither in CI (fails on high severity).

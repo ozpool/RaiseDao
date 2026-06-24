@@ -1,5 +1,5 @@
 import type { Server as IOServer } from 'socket.io';
-import { roomFor, toBroadcast } from './events.js';
+import { WIRE, roomFor, toBroadcast } from './events.js';
 import type { DecodedEvent } from '../indexer/types.js';
 
 /** Pushes events to subscribed clients. Implementations: a real Socket.IO
@@ -25,7 +25,7 @@ export class SocketGateway implements RealtimeGateway {
   constructor(private readonly io: Emittable) {}
 
   publish(event: DecodedEvent): void {
-    this.io.to(roomFor(event.campaignId)).emit('campaign:event', toBroadcast(event));
+    this.io.to(roomFor(event.campaignId)).emit(WIRE.event, toBroadcast(event));
   }
 
   async close(): Promise<void> {
