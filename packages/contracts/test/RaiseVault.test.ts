@@ -1,7 +1,8 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
-import type { GovToken, MockUSDC, RaiseVault } from '../typechain-types';
+import type { MockUSDC } from '../typechain-types';
+import { deployImpls, cloneGovToken, cloneVault } from './helpers';
 
 const FUNDING_DEADLINE = 4_000_000_000n; // far-future unix timestamp
 const FEE_BPS = 200n; // 2% protocol fee
@@ -13,18 +14,18 @@ const MINTER_ROLE = ethers.id('MINTER_ROLE');
 
 describe('RaiseVault', () => {
   async function deploy() {
-    const [deployer, founder, governor, feeRecipient, alice, bob] = await ethers.getSigners();
+    const [, founder, governor, feeRecipient, alice, bob] = await ethers.getSigners();
 
     const usdcToken = (await (
       await ethers.getContractFactory('MockUSDC')
     ).deploy()) as unknown as MockUSDC;
-    const govToken = (await (
-      await ethers.getContractFactory('GovToken')
-    ).deploy('RaiseDAO Vote', 'rdVOTE', deployer.address, deployer.address)) as unknown as GovToken;
 
-    const vault = (await (
-      await ethers.getContractFactory('RaiseVault')
-    ).deploy(
+    const { govImpl, vaultImpl, cloner } = await deployImpls();
+    const govToken = await cloneGovToken(cloner, govImpl);
+    const vault = await cloneVault(cloner, vaultImpl);
+
+    await govToken.initialize('RaiseDAO Vote', 'rdVOTE', founder.address, await vault.getAddress());
+    await vault.initialize(
       await usdcToken.getAddress(),
       await govToken.getAddress(),
       founder.address,
@@ -34,9 +35,7 @@ describe('RaiseVault', () => {
       FUNDING_DEADLINE,
       PCT,
       DEADLINES,
-    )) as unknown as RaiseVault;
-
-    await govToken.grantRole(MINTER_ROLE, await vault.getAddress());
+    );
 
     for (const who of [alice, bob]) {
       await usdcToken.mint(who.address, usdc(1_000n));
@@ -45,6 +44,11 @@ describe('RaiseVault', () => {
 
     return { usdcToken, govToken, vault, founder, governor, feeRecipient, alice, bob };
   }
+
+  it('wires the minter role to the vault', async () => {
+    const { govToken, vault } = await loadFixture(deploy);
+    expect(await govToken.hasRole(MINTER_ROLE, await vault.getAddress())).to.equal(true);
+  });
 
   it('pulls USDC and mints proportional voting power', async () => {
     const { usdcToken, govToken, vault, alice } = await loadFixture(deploy);
@@ -85,7 +89,8 @@ describe('RaiseVault', () => {
   });
 
   it('conserves funds across a full release: founder + fees == raised', async () => {
-    const { usdcToken, vault, founder, governor, feeRecipient, alice, bob } = await loadFixture(deploy);
+    const { usdcToken, vault, founder, governor, feeRecipient, alice, bob } =
+      await loadFixture(deploy);
     await vault.connect(alice).contribute(usdc(60n));
     await vault.connect(bob).contribute(usdc(40n));
 

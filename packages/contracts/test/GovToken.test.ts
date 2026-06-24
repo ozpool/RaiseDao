@@ -1,19 +1,22 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
-import type { GovToken } from '../typechain-types';
+import { deployImpls, cloneGovToken } from './helpers';
 
 describe('GovToken', () => {
   async function deploy() {
     const [admin, minter, alice, bob] = await ethers.getSigners();
-    const factory = await ethers.getContractFactory('GovToken');
-    const token = (await factory.deploy(
-      'RaiseDAO Vote',
-      'rdVOTE',
-      admin.address,
-      minter.address,
-    )) as unknown as GovToken;
+    const { govImpl, cloner } = await deployImpls();
+    const token = await cloneGovToken(cloner, govImpl);
+    await token.initialize('RaiseDAO Vote', 'rdVOTE', admin.address, minter.address);
     return { token, admin, minter, alice, bob };
   }
+
+  it('cannot re-initialize a clone', async () => {
+    const { token, admin, minter } = await deploy();
+    await expect(
+      token.initialize('x', 'x', admin.address, minter.address),
+    ).to.be.revertedWithCustomError(token, 'InvalidInitialization');
+  });
 
   it('mints only via MINTER_ROLE', async () => {
     const { token, minter, alice } = await deploy();

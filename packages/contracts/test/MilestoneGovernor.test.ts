@@ -1,22 +1,15 @@
 import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { loadFixture, mine, time } from '@nomicfoundation/hardhat-network-helpers';
-import type {
-  GovToken,
-  MockUSDC,
-  RaiseVault,
-  MilestoneGovernor,
-  TimelockController,
-} from '../typechain-types';
+import type { MockUSDC, MilestoneGovernor, TimelockController } from '../typechain-types';
+import { deployImpls, cloneGovToken, cloneVault } from './helpers';
 
 const usdc = (n: bigint) => n * 1_000_000n;
-const MINTER_ROLE = ethers.id('MINTER_ROLE');
 const TIMELOCK_DELAY = 2 * 24 * 3600; // 2 days
 const VOTING_DELAY = 1; // blocks
 const VOTING_PERIOD = 50; // blocks
 const QUORUM_PCT = 30;
 
-// ProposalState (OZ Governor): 1 Active, 3 Defeated, 4 Succeeded, 7 Executed
 const For = 1;
 const Against = 0;
 
@@ -27,9 +20,10 @@ describe('MilestoneGovernor', () => {
     const usdcToken = (await (
       await ethers.getContractFactory('MockUSDC')
     ).deploy()) as unknown as MockUSDC;
-    const govToken = (await (
-      await ethers.getContractFactory('GovToken')
-    ).deploy('RaiseDAO Vote', 'rdVOTE', deployer.address, deployer.address)) as unknown as GovToken;
+
+    const { govImpl, vaultImpl, cloner } = await deployImpls();
+    const govToken = await cloneGovToken(cloner, govImpl);
+    const vault = await cloneVault(cloner, vaultImpl);
 
     const timelock = (await (
       await ethers.getContractFactory('TimelockController')
@@ -52,9 +46,8 @@ describe('MilestoneGovernor', () => {
     await timelock.grantRole(await timelock.CANCELLER_ROLE(), await governor.getAddress());
     await timelock.grantRole(await timelock.EXECUTOR_ROLE(), ethers.ZeroAddress);
 
-    const vault = (await (
-      await ethers.getContractFactory('RaiseVault')
-    ).deploy(
+    await govToken.initialize('RaiseDAO Vote', 'rdVOTE', founder.address, await vault.getAddress());
+    await vault.initialize(
       await usdcToken.getAddress(),
       await govToken.getAddress(),
       founder.address,
@@ -64,8 +57,7 @@ describe('MilestoneGovernor', () => {
       4_000_000_000n,
       [10_000],
       [4_000_100_000n],
-    )) as unknown as RaiseVault;
-    await govToken.grantRole(MINTER_ROLE, await vault.getAddress());
+    );
 
     // both investors fund the vault and self-delegate before any snapshot
     for (const who of [alice, bob]) {
