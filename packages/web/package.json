@@ -1,0 +1,12 @@
+{
+  "name": "@raisedao/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
+  }
+}
