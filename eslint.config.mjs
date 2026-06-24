@@ -12,10 +12,27 @@ export default tseslint.config(
       '**/coverage/**',
       '**/artifacts/**',
       '**/cache/**',
+      '**/typechain-types/**',
       '**/node_modules/**',
     ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    // Node + Mocha runtime globals for the Hardhat config and contract tests
+    files: ['packages/contracts/**/*.ts'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        before: 'readonly',
+        beforeEach: 'readonly',
+        after: 'readonly',
+        afterEach: 'readonly',
+      },
+    },
+  },
   prettier,
 );
