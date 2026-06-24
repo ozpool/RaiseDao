@@ -29,3 +29,35 @@ jobs:
       - run: pnpm -r typecheck
       - run: pnpm -r build
       - run: pnpm -r test
+
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive # forge-std lives in packages/contracts/lib
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Foundry fuzz and invariant tests
+        run: forge test -vvv
+        working-directory: packages/contracts
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install slither-analyzer
+
+      - name: Slither static analysis (fail on high severity)
+        run: slither . --fail-on high
+        working-directory: packages/contracts
