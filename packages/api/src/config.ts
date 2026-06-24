@@ -6,12 +6,32 @@ import { z } from 'zod';
  * environment is parsed once here, so the rest of the code reads a typed object
  * and a bad/missing variable fails fast at boot instead of deep in a request.
  */
-const schema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.coerce.number().int().positive().default(4000),
-  MONGODB_URI: z.string().min(1).default('mongodb://127.0.0.1:27017/raisedao'),
-  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
-});
+const DEV_JWT_SECRET = 'dev-only-insecure-secret-change-me';
+
+const schema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+    PORT: z.coerce.number().int().positive().default(4000),
+    MONGODB_URI: z.string().min(1).default('mongodb://127.0.0.1:27017/raisedao'),
+    LOG_LEVEL: z
+      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+      .default('info'),
+    JWT_SECRET: z.string().min(16).default(DEV_JWT_SECRET),
+    JWT_EXPIRES_IN: z.string().default('7d'),
+    SIWE_DOMAIN: z.string().default('localhost:3000'),
+    SIWE_URI: z.string().url().default('http://localhost:3000'),
+    SIWE_CHAIN_ID: z.coerce.number().int().positive().default(421614), // Arbitrum Sepolia
+    ADMIN_ADDRESSES: z.string().default(''), // comma-separated wallet addresses
+  })
+  .superRefine((cfg, ctx) => {
+    if (cfg.NODE_ENV === 'production' && cfg.JWT_SECRET === DEV_JWT_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['JWT_SECRET'],
+        message: 'must be set to a strong value in production',
+      });
+    }
+  });
 
 export type Config = z.infer<typeof schema>;
 
@@ -24,6 +44,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`Invalid environment configuration:\n${detail}`);
   }
   return parsed.data;
+}
+
+/** Lowercased admin allowlist parsed from ADMIN_ADDRESSES. */
+export function adminAddresses(cfg: Config = config): Set<string> {
+  return new Set(
+    cfg.ADMIN_ADDRESSES.split(',')
+      .map((a) => a.trim().toLowerCase())
+      .filter(Boolean),
+  );
 }
 
 export const config = loadConfig();
