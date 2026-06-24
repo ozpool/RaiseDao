@@ -11,3 +11,4 @@ export { requireAuth, requireRole } from './auth/middleware.js';
 export { signToken, verifyToken, type AuthClaims, type Role } from './auth/jwt.js';
 export { MongoAuthStore, InMemoryAuthStore, type AuthStore, type AuthUser } from './auth/store.js';
 export * from './models/index.js';
+export { startIndexer, stopIndexer, processRange } from './indexer/index.js';
