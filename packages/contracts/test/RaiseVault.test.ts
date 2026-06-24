@@ -137,4 +137,43 @@ describe('RaiseVault', () => {
       'NothingToRefund',
     );
   });
+
+  it('blocks releasing a milestone once the campaign has failed', async () => {
+    const { vault, governor, alice } = await loadFixture(deploy);
+    await vault.connect(alice).contribute(usdc(100n));
+    await vault.connect(governor).markFailed(0);
+    await expect(vault.connect(governor).releaseMilestone(1)).to.be.revertedWithCustomError(
+      vault,
+      'AlreadyFailed',
+    );
+  });
+
+  it('rejects a second failure', async () => {
+    const { vault, governor } = await loadFixture(deploy);
+    await vault.connect(governor).markFailed(0);
+    await expect(vault.connect(governor).markFailed(1)).to.be.revertedWithCustomError(
+      vault,
+      'AlreadyFailed',
+    );
+  });
+
+  it('forceFail reverts before the milestone deadline', async () => {
+    const { vault, alice } = await loadFixture(deploy);
+    await vault.connect(alice).contribute(usdc(100n));
+    await expect(vault.connect(alice).forceFail()).to.be.revertedWithCustomError(
+      vault,
+      'DeadlineNotReached',
+    );
+  });
+
+  it('forceFail opens refunds for anyone once the deadline passes', async () => {
+    const { vault, usdcToken, alice } = await loadFixture(deploy);
+    await vault.connect(alice).contribute(usdc(100n));
+    await ethers.provider.send('evm_setNextBlockTimestamp', [Number(DEADLINES[0]) + 1]);
+    await vault.connect(alice).forceFail();
+
+    expect(await vault.refundsOpen()).to.equal(true);
+    await vault.connect(alice).claimRefund();
+    expect(await usdcToken.balanceOf(alice.address)).to.equal(usdc(1_000n)); // full contribution back
+  });
 });
