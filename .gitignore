@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+build/
+.next/
+out/
+coverage/
+
+# smart contract artifacts
+artifacts/
+cache/
+typechain-types/
+
+# env / secrets — never commit
+.env
+.env.*
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# local tooling context — never committed
+.claude/
+CLAUDE.md
+graphify-out/
+.code-review-graph/
