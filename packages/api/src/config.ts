@@ -22,6 +22,16 @@ const schema = z
     SIWE_URI: z.string().url().default('http://localhost:3000'),
     SIWE_CHAIN_ID: z.coerce.number().int().positive().default(421614), // Arbitrum Sepolia
     ADMIN_ADDRESSES: z.string().default(''), // comma-separated wallet addresses
+    // Indexer
+    INDEXER_ENABLED: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((v) => v === 'true'),
+    RPC_URL: z.string().url().default('https://sepolia-rollup.arbitrum.io/rpc'),
+    FACTORY_ADDRESS: z.string().default(''),
+    INDEXER_START_BLOCK: z.coerce.number().int().nonnegative().default(0),
+    INDEXER_CONFIRMATIONS: z.coerce.number().int().nonnegative().default(5),
+    INDEXER_POLL_MS: z.coerce.number().int().positive().default(12000),
   })
   .superRefine((cfg, ctx) => {
     if (cfg.NODE_ENV === 'production' && cfg.JWT_SECRET === DEV_JWT_SECRET) {
