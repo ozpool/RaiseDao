@@ -4,3 +4,4 @@ export { EventModel, type Event } from './Event.js';
 export { VoteModel, type Vote } from './Vote.js';
 export { AnalyticsModel, type Analytics } from './Analytics.js';
 export { CheckpointModel, type Checkpoint } from './Checkpoint.js';
+export { EvidenceModel, type Evidence } from './Evidence.js';
