@@ -34,5 +34,19 @@ export default tseslint.config(
       },
     },
   },
+  {
+    // Node runtime globals for the API server
+    files: ['packages/api/**/*.ts'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        URL: 'readonly',
+        Buffer: 'readonly',
+      },
+    },
+  },
   prettier,
 );
