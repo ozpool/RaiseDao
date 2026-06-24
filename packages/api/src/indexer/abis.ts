@@ -15,4 +15,6 @@ export const vaultIface = new Interface([
 
 export const governorIface = new Interface([
   'event VoteCast(address indexed voter, uint256 proposalId, uint8 support, uint256 weight, string reason)',
+  'event ProposalCreated(uint256 proposalId, address proposer, address[] targets, uint256[] values, string[] signatures, bytes[] calldatas, uint256 voteStart, uint256 voteEnd, string description)',
+  'event ProposalQueued(uint256 proposalId, uint256 etaSeconds)',
 ]);

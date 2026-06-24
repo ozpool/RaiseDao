@@ -111,4 +111,34 @@ describe('processRange', () => {
     expect(result.processed).toBe(0);
     expect(store.events.length).toBe(0);
   });
+
+  it('emits each newly-applied event to the sink exactly once, not on replay', async () => {
+    const store = new InMemoryIndexerStore();
+    const source = new FakeSource(20, [campaignDeployed(10, 0), contributed(12, 0)]);
+    const seen: string[] = [];
+
+    await processRange(source, store, OPTS, (e) => {
+      seen.push(e.type);
+    });
+    expect(seen).toEqual(['CampaignDeployed', 'Contributed']);
+
+    // replay the same blocks: nothing new applied, so the sink is not called
+    store.checkpoint = OPTS.startBlock - 1;
+    await processRange(source, store, OPTS, (e) => {
+      seen.push(e.type);
+    });
+    expect(seen).toEqual(['CampaignDeployed', 'Contributed']);
+  });
+
+  it('continues indexing when the sink throws', async () => {
+    const store = new InMemoryIndexerStore();
+    const source = new FakeSource(20, [campaignDeployed(10, 0), contributed(12, 0)]);
+
+    const result = await processRange(source, store, OPTS, () => {
+      throw new Error('sink boom');
+    });
+
+    expect(result.processed).toBe(2);
+    expect(store.checkpoint).toBe(15);
+  });
 });

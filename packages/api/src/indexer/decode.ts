@@ -77,6 +77,7 @@ function identity(log: LogRecord) {
 function normaliseArgs(parsed: LogDescription): Record<string, string | number> {
   const out: Record<string, string | number> = {};
   for (const input of parsed.fragment.inputs) {
+    if (input.type.endsWith(']')) continue; // skip array params (calldata, targets…)
     const value = parsed.args[input.name];
     if (input.type === 'address') out[input.name] = String(value).toLowerCase();
     else if (typeof value === 'bigint') out[input.name] = value.toString();

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { factoryIface, vaultIface } from './abis.js';
+import { factoryIface, vaultIface, governorIface } from './abis.js';
 import { decodeLog } from './decode.js';
 import type { LogRecord } from './types.js';
 
@@ -53,5 +53,30 @@ describe('decodeLog', () => {
   it('ignores logs from unknown addresses', () => {
     const log = encode(vaultIface, 'Contributed', [INVESTOR, 1n, 1n], GOV);
     expect(decodeLog(log, FACTORY, new Map())).toBeNull();
+  });
+
+  it('decodes ProposalCreated and drops array params (calldata, targets)', () => {
+    const watched = new Map([[GOV, 4]]);
+    const log = encode(
+      governorIface,
+      'ProposalCreated',
+      [99, FOUNDER, [], [], [], [], 100, 200, 'release milestone 0'],
+      GOV,
+    );
+    const ev = decodeLog(log, FACTORY, watched);
+    expect(ev?.type).toBe('ProposalCreated');
+    expect(ev?.campaignId).toBe(4);
+    expect(ev?.args.proposalId).toBe('99');
+    expect(ev?.args.voteEnd).toBe('200');
+    expect(ev?.args.targets).toBeUndefined();
+    expect(ev?.args.calldatas).toBeUndefined();
+  });
+
+  it('decodes ProposalQueued for a watched governor', () => {
+    const watched = new Map([[GOV, 4]]);
+    const log = encode(governorIface, 'ProposalQueued', [99, 1700000000], GOV);
+    const ev = decodeLog(log, FACTORY, watched);
+    expect(ev?.type).toBe('ProposalQueued');
+    expect(ev?.args.proposalId).toBe('99');
   });
 });
