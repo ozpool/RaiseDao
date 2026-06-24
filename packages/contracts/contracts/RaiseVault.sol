@@ -3,7 +3,9 @@ pragma solidity 0.8.30;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {ReentrancyGuardTransient} from
+    "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 
 interface IGovToken {
     function mint(address to, uint256 amount) external;
@@ -25,8 +27,10 @@ enum MilestoneStatus {
  *         Each contribution mints proportional (soulbound) GovToken voting power.
  *         The governor releases or fails milestones in order; a failed milestone
  *         opens pro-rata refunds of whatever USDC remains in the vault.
+ * @dev Cloneable: deployed once as an implementation and used per-campaign via an
+ *      EIP-1167 minimal proxy, so config lives in storage set by initialize().
  */
-contract RaiseVault is ReentrancyGuard {
+contract RaiseVault is Initializable, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
 
     struct Milestone {
@@ -37,13 +41,13 @@ contract RaiseVault is ReentrancyGuard {
 
     uint256 private constant BPS = 10_000;
 
-    IERC20 public immutable usdc;
-    IGovToken public immutable govToken;
-    address public immutable founder;
-    address public immutable governor;
-    address public immutable feeRecipient;
-    uint16 public immutable protocolFeeBps;
-    uint64 public immutable fundingDeadline;
+    IERC20 public usdc;
+    IGovToken public govToken;
+    address public founder;
+    address public governor;
+    address public feeRecipient;
+    uint16 public protocolFeeBps;
+    uint64 public fundingDeadline;
 
     Milestone[] public milestones;
     uint256 public currentMilestone; // index of the next milestone to act on
@@ -73,7 +77,12 @@ contract RaiseVault is ReentrancyGuard {
         _;
     }
 
-    constructor(
+    /// @dev Lock the implementation so only clones can be initialized.
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
         IERC20 usdc_,
         IGovToken govToken_,
         address founder_,
@@ -83,7 +92,7 @@ contract RaiseVault is ReentrancyGuard {
         uint64 fundingDeadline_,
         uint16[] memory pctBps_,
         uint64[] memory deadlines_
-    ) {
+    ) external initializer {
         if (pctBps_.length == 0 || pctBps_.length != deadlines_.length) revert BadSchedule();
         uint256 sum;
         for (uint256 i; i < pctBps_.length; ++i) {
