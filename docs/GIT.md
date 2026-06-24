@@ -92,6 +92,19 @@ severity). A PR merges only with CI green.
   git-ignored and never committed.
 - One PR = one issue = one logical change.
 
+## Local guardrail hooks
+
+PreToolUse hooks enforce these rules and **scan the entire command string**, not
+just the commit message — including file paths and any inline PR/issue body.
+Practical consequences:
+
+- Never reference a temp/scratch path that contains a tool name in a `git`/`gh`
+  command; pass PR/issue bodies inline via a stdin heredoc (`--body-file -`).
+- Keep PR/issue body lines `≤ 100` chars too — the commit-convention guard flags
+  long lines even when they live in a PR-body heredoc, not a commit.
+- The attribution guard blocks any assistant/AI mention anywhere in the command,
+  including ignored paths.
+
 ## Merge
 
 The maintainer merges with a merge commit (`gh pr merge <n> --merge

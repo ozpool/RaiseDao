@@ -150,3 +150,25 @@ indexer, dual-pin IPFS, Slither in CI, delegate voting, campaign-expiry refund.
 
 **Documented as pattern, not enforced:** KYC/AML, geofencing, account-abstraction
 gasless UX, fiat on-ramp, multisig-to-propose. See README "Known Scope Boundaries".
+
+## 11. Environment & secrets
+
+Every package validates its env through `@raisedao/shared` (zod); a missing or
+malformed variable fails fast at boot. Secrets live only in `.env` (git-ignored); a
+committed `.env.example` documents each key. Never commit a deployer private key or
+service token.
+
+| Package     | Keys (representative)                                                                                           |
+| ----------- | --------------------------------------------------------------------------------------------------------------- |
+| `contracts` | `RPC_URL`, `DEPLOYER_PRIVATE_KEY`, `ARBISCAN_API_KEY`                                                           |
+| `api`       | `MONGO_URI`, `REDIS_URL`, `JWT_SECRET`, `RPC_URL`, `WS_RPC_URL`, `FACTORY_ADDR`, `PINATA_JWT`, `RESEND_API_KEY` |
+| `web`       | `NEXT_PUBLIC_RPC_URL`, `NEXT_PUBLIC_FACTORY_ADDR`, `NEXT_PUBLIC_USDC_ADDR`, `NEXT_PUBLIC_SOCKET_URL`            |
+
+## 12. Testing strategy
+
+- Contracts: Hardhat unit tests for every path; Foundry fuzz + invariant for the
+  release/refund accounting; Slither in CI (fails on high severity).
+- API: integration tests for auth and endpoints; the indexer tested against a
+  mocked/forked provider for reorg safety and idempotency.
+- Web: typecheck + lint as the baseline gate; component checks on `/lab`; Lighthouse
+  on visual-heavy routes before a milestone closes.
