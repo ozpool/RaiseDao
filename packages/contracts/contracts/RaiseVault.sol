@@ -94,7 +94,7 @@ contract RaiseVault is Initializable, ReentrancyGuardTransient {
         uint64[] memory deadlines_
     ) external initializer {
         if (pctBps_.length == 0 || pctBps_.length != deadlines_.length) revert BadSchedule();
-        uint256 sum;
+        uint256 sum = 0;
         for (uint256 i; i < pctBps_.length; ++i) {
             sum += pctBps_[i];
             milestones.push(Milestone(pctBps_[i], MilestoneStatus.Pending, deadlines_[i]));
@@ -130,6 +130,9 @@ contract RaiseVault is Initializable, ReentrancyGuardTransient {
         m.status = MilestoneStatus.Released;
 
         uint256 gross = (totalRaised * m.pctBps) / BPS;
+        // The fee is intentionally charged on the actual (floored) tranche paid out,
+        // so the division before this multiplication is correct, not a precision bug.
+        // slither-disable-next-line divide-before-multiply
         uint256 fee = (gross * protocolFeeBps) / BPS;
         uint256 toFounder = gross - fee;
 

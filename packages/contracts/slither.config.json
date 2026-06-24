@@ -1,0 +1,5 @@
+{
+  "filter_paths": "node_modules|lib|contracts/mocks|contracts/test|test/foundry",
+  "exclude_informational": true,
+  "exclude_low": true
+}

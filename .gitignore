@@ -12,6 +12,7 @@ coverage/
 # smart contract artifacts
 artifacts/
 cache/
+cache_forge/
 typechain-types/
 
 # env / secrets — never commit
