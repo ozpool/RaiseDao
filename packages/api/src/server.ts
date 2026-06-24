@@ -3,6 +3,7 @@ import { config } from './config.js';
 import { logger } from './logger.js';
 import { createApp } from './app.js';
 import { connectDB, disconnectDB } from './db.js';
+import { startIndexer, stopIndexer } from './indexer/index.js';
 
 function main(): void {
   const app = createApp();
@@ -16,9 +17,11 @@ function main(): void {
 
   installShutdown(server);
 
-  connectDB(config.MONGODB_URI).catch((err) => {
-    logger.error({ err }, 'MongoDB unavailable; serving without a database');
-  });
+  connectDB(config.MONGODB_URI)
+    .then(() => startIndexer()) // in-process indexer; needs the DB connection
+    .catch((err) => {
+      logger.error({ err }, 'MongoDB unavailable; serving without a database');
+    });
 }
 
 /** Close the HTTP server and the DB connection on a termination signal so
@@ -29,6 +32,7 @@ function installShutdown(server: Server): void {
     if (closing) return;
     closing = true;
     logger.info({ signal }, 'Shutting down');
+    stopIndexer();
     await new Promise<void>((resolve) => server.close(() => resolve()));
     await disconnectDB();
     process.exit(0);
