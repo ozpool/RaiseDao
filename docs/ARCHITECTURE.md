@@ -61,27 +61,39 @@ Three load-bearing decisions:
 
 ## 4. Contract surface
 
-**RaiseFactory** — `deploy(CampaignParams)` clones GovToken + RaiseVault +
-MilestoneGovernor via EIP-1167, wires roles (vault is token minter, governor
-administers vault), emits `CampaignDeployed(id, vault, token, governor, founder)`.
+**RaiseFactory** — `deploy(CampaignParams)` clones GovToken + RaiseVault via
+EIP-1167 (both are initializer-based implementations) and deploys a fresh
+MilestoneGovernor + TimelockController per campaign through small deployer
+contracts (kept separate so the factory stays under the 24KB limit). It wires
+roles (vault is token minter; the timelock is the vault's governor and the only
+proposer/executor; the factory renounces timelock admin), rejects a nonzero
+`proposalThreshold` (founders hold no votes, so it would brick proposing), and
+emits `CampaignDeployed(id, vault, token, governor, founder)`. Clone + init +
+wire happen in one transaction, so there is no init front-run window.
 
 **GovToken** — `ERC20Votes`, **soulbound** (transfers reverted; mint/burn only).
 Minted by the vault on contribution. Delegation still works (delegation moves
 voting power, not tokens), which kills the buy-then-vote and founder-buyback
-attacks at the root.
+attacks at the root. Investors must `delegate(self)` to activate voting power.
 
 **RaiseVault** — holds USDC, milestone schedule, and per-investor share.
+Reentrancy-guarded with transient storage (Cancun).
 
-- `contribute(amount)` — pulls USDC, mints GovToken (CEI + ReentrancyGuard).
-- `releaseMilestone(id)` — `onlyGovernor`; transfers the slice (minus protocol fee) to founder.
-- `markFailed(id)` — `onlyGovernor`.
+- `contribute(amount)` — pulls USDC, mints GovToken (CEI + guard).
+- `releaseMilestone(id)` — `onlyGovernor`; transfers the slice (minus protocol
+  fee) to founder. Blocked once the campaign has failed.
+- `markFailed(id)` — `onlyGovernor`; opens pro-rata refunds.
+- `forceFail()` — permissionless escape hatch once the current milestone's
+  deadline has passed without a release, so a passive founder cannot lock funds.
 - `claimRefund()` — pro-rata of remaining USDC, burns the caller's shares.
-- Invariant: `totalReleased + remaining == totalRaised - refundsClaimed`.
+- Invariant: `totalReleased + remaining == totalRaised - refundsClaimed`
+  (fuzzed + invariant-tested under Foundry).
 
 **MilestoneGovernor** — extends OpenZeppelin Governor. Voting delay 1 day, period
 3 days, configurable quorum, 2-day timelock on execution. `propose` is
-founder-only and encodes `vault.releaseMilestone(id)`. Snapshot-based weight
-prevents buy-then-vote.
+founder-only and encodes `vault.releaseMilestone(id)` or `vault.markFailed(id)`;
+the timelock executes it as the vault's governor. Snapshot-based weight prevents
+buy-then-vote.
 
 ## 5. Data flow: launch -> fund -> vote -> resolve
 
@@ -127,6 +139,7 @@ can trigger it.
 | Mode                                   | Defense                                                                                    |
 | -------------------------------------- | ------------------------------------------------------------------------------------------ |
 | Founder ships milestone 1, ghosts on 2 | Investors fail milestone 2; pro-rata refund of the rest. Loss bounded to slice 1.          |
+| Founder never proposes (funds frozen)  | `forceFail()` is permissionless once the milestone deadline passes — anyone opens refunds. |
 | Whale dominance                        | Quorum + transparency; capital reflects skin-in-the-game. Quadratic voting is future work. |
 | Founder buys tokens to self-approve    | GovToken is soulbound (mint/burn only) — cannot be acquired.                               |
 | Indexer behind at vote close           | Tally is recomputable from chain; UI shows "syncing"; `execute()` is permissionless.       |
