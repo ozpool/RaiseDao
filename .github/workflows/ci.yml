@@ -59,5 +59,5 @@ jobs:
       - run: pip install slither-analyzer
 
       - name: Slither static analysis (fail on high severity)
-        run: slither . --fail-on high
+        run: slither . --fail-high
         working-directory: packages/contracts
