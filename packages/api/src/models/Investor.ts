@@ -7,6 +7,8 @@ const investorSchema = new Schema(
     roles: { type: [String], enum: ['investor', 'founder', 'admin'], default: ['investor'] },
     nonce: { type: String, default: null },
     displayName: { type: String, default: null },
+    // Optional notification opt-in; only wallets that set an email get emailed.
+    email: { type: String, default: null, lowercase: true, trim: true },
   },
   { timestamps: true },
 );

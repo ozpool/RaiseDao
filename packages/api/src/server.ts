@@ -3,9 +3,12 @@ import { config } from './config.js';
 import { logger } from './logger.js';
 import { createApp } from './app.js';
 import { connectDB, disconnectDB } from './db.js';
-import { startIndexer, stopIndexer } from './indexer/index.js';
+import { startIndexer, stopIndexer, type EventSink } from './indexer/index.js';
+import { createGateway, asSink, type RealtimeGateway, type Snapshot } from './realtime/index.js';
+import { buildNotifier } from './email/index.js';
+import { AnalyticsModel } from './models/index.js';
 
-function main(): void {
+async function main(): Promise<void> {
   const app = createApp();
 
   // Listen first so the server (and the liveness probe) is up immediately, then
@@ -15,24 +18,53 @@ function main(): void {
     logger.info(`API listening on http://localhost:${config.PORT}`);
   });
 
-  installShutdown(server);
+  const gateway = await createGateway(server, {
+    enabled: config.REALTIME_ENABLED,
+    redisUrl: config.REDIS_URL,
+    snapshot: campaignSnapshot,
+  });
+
+  installShutdown(server, gateway);
+
+  // Fan each indexed event out to connected sockets and to email notifications.
+  const sink = combineSinks([asSink(gateway), buildNotifier()]);
 
   connectDB(config.MONGODB_URI)
-    .then(() => startIndexer()) // in-process indexer; needs the DB connection
+    .then(() => startIndexer(sink)) // in-process indexer; needs the DB connection
     .catch((err) => {
       logger.error({ err }, 'MongoDB unavailable; serving without a database');
     });
 }
 
-/** Close the HTTP server and the DB connection on a termination signal so
+/** Snapshot a campaign's current rollups so a (re)connecting client re-syncs. */
+const campaignSnapshot: Snapshot = async (campaignId) => {
+  const analytics = await AnalyticsModel.findOne({ campaignId }, { _id: 0, __v: 0 }).lean();
+  return { campaignId, analytics };
+};
+
+/** Run every sink for an event, isolating a failure in one from the others. */
+function combineSinks(sinks: EventSink[]): EventSink {
+  return async (event) => {
+    for (const sink of sinks) {
+      try {
+        await sink(event);
+      } catch (err) {
+        logger.error({ err, type: event.type }, 'Event sink failed; continuing');
+      }
+    }
+  };
+}
+
+/** Close the HTTP server, realtime gateway, and DB on a termination signal so
  *  in-flight requests drain and the process exits cleanly. */
-function installShutdown(server: Server): void {
+function installShutdown(server: Server, gateway: RealtimeGateway): void {
   let closing = false;
   const shutdown = async (signal: string): Promise<void> => {
     if (closing) return;
     closing = true;
     logger.info({ signal }, 'Shutting down');
     stopIndexer();
+    await gateway.close();
     await new Promise<void>((resolve) => server.close(() => resolve()));
     await disconnectDB();
     process.exit(0);
@@ -42,9 +74,7 @@ function installShutdown(server: Server): void {
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
 }
 
-try {
-  main();
-} catch (err) {
+main().catch((err) => {
   logger.error({ err }, 'Fatal startup error');
   process.exit(1);
-}
+});
