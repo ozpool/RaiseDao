@@ -41,6 +41,17 @@ const schema = z
       .int()
       .positive()
       .default(10 * 1024 * 1024),
+    // Realtime (#16). Socket.IO is always served; REDIS_URL only adds the
+    // cross-instance adapter (Upstash). Disabled flag skips the gateway entirely.
+    REALTIME_ENABLED: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((v) => v === 'true'),
+    REDIS_URL: z.string().default(''),
+    APP_URL: z.string().url().default('http://localhost:3000'),
+    // Transactional email (#16). Missing key disables sending (no-op mailer).
+    RESEND_API_KEY: z.string().default(''),
+    EMAIL_FROM: z.string().default('RaiseDAO <notifications@raisedao.app>'),
   })
   .superRefine((cfg, ctx) => {
     if (cfg.NODE_ENV === 'production' && cfg.JWT_SECRET === DEV_JWT_SECRET) {
