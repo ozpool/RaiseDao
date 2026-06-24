@@ -32,6 +32,15 @@ const schema = z
     INDEXER_START_BLOCK: z.coerce.number().int().nonnegative().default(0),
     INDEXER_CONFIRMATIONS: z.coerce.number().int().nonnegative().default(5),
     INDEXER_POLL_MS: z.coerce.number().int().positive().default(12000),
+    // IPFS evidence pinning (#15). Missing tokens disable that provider; the
+    // route fails loudly only when no provider can pin.
+    PINATA_JWT: z.string().default(''),
+    WEB3_STORAGE_TOKEN: z.string().default(''),
+    EVIDENCE_MAX_BYTES: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(10 * 1024 * 1024),
   })
   .superRefine((cfg, ctx) => {
     if (cfg.NODE_ENV === 'production' && cfg.JWT_SECRET === DEV_JWT_SECRET) {
