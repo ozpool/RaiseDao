@@ -6,6 +6,7 @@
     "lint": "eslint .",
     "typecheck": "hardhat compile && tsc --noEmit",
     "build": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.ts --network arbitrumSepolia",
     "test": "hardhat test"
   },
   "devDependencies": {

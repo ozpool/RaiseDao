@@ -16,6 +16,10 @@ cache/
 cache_forge/
 typechain-types/
 
+# local contract deploy records (dry-runs); commit real network records manually
+packages/contracts/deployments/hardhat.json
+packages/contracts/deployments/localhost.json
+
 # env / secrets — never commit
 .env
 .env.*

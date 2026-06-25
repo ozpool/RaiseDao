@@ -6,6 +6,7 @@ import { api, ApiError, type DraftRecord } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 import { INITIAL_DATA, toDraftPayload, validateStep, type WizardData } from './wizard-types';
 import { VaultWireframe } from './VaultWireframe';
+import { DeployPanel } from './DeployPanel';
 import { BasicsStep } from './steps/BasicsStep';
 import { EconomicsStep } from './steps/EconomicsStep';
 import { MilestonesStep } from './steps/MilestonesStep';
@@ -47,16 +48,18 @@ export function CreateWizard() {
         <p className="font-mono text-caption uppercase tracking-widest text-data">Draft saved</p>
         <p className="mt-3 font-sans text-h2 font-semibold text-paper">{saved.title}</p>
         <p className="mt-3 font-sans text-small text-mist">
-          Your campaign is saved as a draft. The on-chain deploy lands next (#24); for now you can
-          keep editing the schedule.
+          Your campaign is saved as a draft. Deploy it on-chain to open it for funding.
         </p>
+        <div className="mt-6 flex flex-col items-center">
+          <DeployPanel draft={saved} />
+        </div>
         <div className="mt-7 flex justify-center gap-3">
           <Link href="/account" className={GHOST}>
             Account
           </Link>
           <button
             type="button"
-            className={PRIMARY}
+            className={GHOST}
             onClick={() => {
               setSaved(null);
               setData(INITIAL_DATA);
