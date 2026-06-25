@@ -12,13 +12,19 @@
   --color-paper: #edeef0; /* primary text */
   --color-mist: #8a8f9c; /* secondary text */
   --color-signal: #4f7cff; /* the one live / actionable accent */
+  --color-data: #38e0d8; /* cyan — data / funding glow, used sparingly */
   --color-gold-unlock: #e8b86d; /* ONLY fund-release / milestone-unlock */
 
   /* Type families — bound to the next/font CSS variables set on <html> */
+  --font-display: var(--font-clash), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 
   /* Type scale (rem @ 16px base); the `--line-height` companion sets leading */
+  --text-mega: clamp(3rem, 16vw, 16rem); /* the wordmark — a layout element, not text */
+  --text-mega--line-height: 0.9;
+  --text-hero: clamp(2.5rem, 6vw, 5rem); /* the editorial hero statement */
+  --text-hero--line-height: 1.02;
   --text-display: 3.5rem;
   --text-display--line-height: 1.05;
   --text-h1: 2.25rem;
