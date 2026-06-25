@@ -8,6 +8,7 @@ import { Color } from 'three';
 export interface CoreData {
   positions: Float32Array; // xyz per instance, in local units
   colors: Float32Array; // rgb per instance (linear-ish, set via Color)
+  emissive: Float32Array; // per-instance emissive strength; >0 only on accents
   fillHeight: Float32Array; // 0..1 normalised Y, for the funding waterline
   count: number;
   radius: number; // max distance of any cube from centre (for scatter falloff)
@@ -24,8 +25,8 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-const NEUTRAL_LIGHT = '#AEB8CC'; // cool brushed metal, faintly blue
-const NEUTRAL_DARK = '#262C3A'; // cool shadow block
+const NEUTRAL_LIGHT = '#C2CCE0'; // cool brushed metal, lifted so the silhouette reads
+const NEUTRAL_DARK = '#323A4C'; // cool shadow block, lifted off the void
 const ACCENTS = ['#3FE9E0', '#4A6BFF', '#C863F0', '#FF8FD6']; // cyan, blue, magenta, pink
 
 export function buildCore(seed = 1337): CoreData {
@@ -35,6 +36,7 @@ export function buildCore(seed = 1337): CoreData {
   const spacing = 0.42;
   const pos: number[] = [];
   const col: number[] = [];
+  const emi: number[] = [];
   const fill: number[] = [];
   const c = new Color();
 
@@ -51,9 +53,13 @@ export function buildCore(seed = 1337): CoreData {
         fill.push((y + N) / (2 * N)); // 0 at the bottom, 1 at the top
 
         const accent = ACCENTS[Math.floor(rand() * ACCENTS.length)] ?? NEUTRAL_LIGHT;
-        const hex = rand() < 0.2 ? accent : rand() < 0.5 ? NEUTRAL_LIGHT : NEUTRAL_DARK;
+        const isAccent = rand() < 0.2;
+        const hex = isAccent ? accent : rand() < 0.5 ? NEUTRAL_LIGHT : NEUTRAL_DARK;
         c.set(hex);
         col.push(c.r, c.g, c.b);
+        // Only accents emit, and with a little variance so the bloom field
+        // breathes instead of reading as a uniform wall of glow.
+        emi.push(isAccent ? 1.8 + rand() * 1.6 : 0);
       }
     }
   }
@@ -61,6 +67,7 @@ export function buildCore(seed = 1337): CoreData {
   return {
     positions: new Float32Array(pos),
     colors: new Float32Array(col),
+    emissive: new Float32Array(emi),
     fillHeight: new Float32Array(fill),
     count: pos.length / 3,
     radius: bound * spacing,

@@ -2,7 +2,13 @@
 
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Color, Object3D, type InstancedMesh } from 'three';
+import {
+  Color,
+  InstancedBufferAttribute,
+  Object3D,
+  type InstancedMesh,
+  type MeshStandardMaterial,
+} from 'three';
 import { buildCore } from './core-geometry';
 
 const CUBE = 0.3; // cube edge length in local units
@@ -11,17 +17,41 @@ export interface TrustCoreProps {
   reducedMotion?: boolean;
 }
 
-/** The instanced voxel core. Stage 1: a stable cluster with an idle breathing
- *  rotation. Cursor-scatter and the funding waterline arrive in later stages. */
+/** Inject a per-instance emissive term into the standard material. InstancedMesh
+ *  has no native per-instance emissive, so accent cubes can't "glow" on their own
+ *  out of the box. We add an `aEmissive` instanced attribute and add
+ *  `vColor * vEmissive` to the emissive radiance — only accents (strength > 0)
+ *  light up, which is exactly what the selective bloom keys off of. */
+function patchEmissive(material: MeshStandardMaterial) {
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        '#include <common>\nattribute float aEmissive;\nvarying float vEmissive;',
+      )
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvEmissive = aEmissive;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vEmissive;')
+      .replace(
+        '#include <emissivemap_fragment>',
+        '#include <emissivemap_fragment>\ntotalEmissiveRadiance += vColor * vEmissive;',
+      );
+  };
+}
+
+/** The instanced voxel core. Stable cluster, idle breathing rotation, and a
+ *  per-instance emissive that drives the selective bloom in the canvas.
+ *  Cursor-scatter and the funding waterline arrive in later stages. */
 export function TrustCore({ reducedMotion = false }: TrustCoreProps) {
   const meshRef = useRef<InstancedMesh>(null);
   const data = useMemo(() => buildCore(), []);
   const dummy = useMemo(() => new Object3D(), []);
 
-  // Seed the per-instance colours and base matrices once the mesh exists.
+  // Seed the per-instance colours, emissive, and base matrices once the mesh exists.
   useLayoutEffect(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
+    mesh.geometry.setAttribute('aEmissive', new InstancedBufferAttribute(data.emissive, 1));
     const c = new Color();
     for (let i = 0; i < data.count; i++) {
       c.fromArray(data.colors, i * 3);
@@ -45,7 +75,13 @@ export function TrustCore({ reducedMotion = false }: TrustCoreProps) {
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, data.count]}>
       <boxGeometry args={[CUBE, CUBE, CUBE]} />
-      <meshStandardMaterial vertexColors roughness={0.45} metalness={0.12} />
+      <meshStandardMaterial
+        vertexColors
+        roughness={0.4}
+        metalness={0.15}
+        toneMapped={false}
+        onBeforeCompile={patchEmissive}
+      />
     </instancedMesh>
   );
 }
