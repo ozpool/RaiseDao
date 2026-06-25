@@ -64,4 +64,27 @@ export const api = {
       apiFetch<VerifyResult>('/auth/verify', { method: 'POST', body: { message, signature } }),
     me: (token: string) => apiFetch<Session>('/auth/me', { token }),
   },
+  drafts: {
+    create: (input: DraftPayload, token: string) =>
+      apiFetch<DraftRecord>('/drafts', { method: 'POST', body: input, token }),
+  },
 };
+
+/** The draft payload the create wizard sends (percent already converted to bps). */
+export interface DraftPayload {
+  title: string;
+  summary: string;
+  raiseTarget: string;
+  fundingDurationDays: number;
+  tokenName: string;
+  tokenSymbol: string;
+  tokenSupply: string;
+  milestones: { title: string; pctBps: number }[];
+}
+
+/** A saved draft as returned by the API. */
+export interface DraftRecord extends DraftPayload {
+  id: string;
+  founder: string;
+  status: 'draft';
+}
