@@ -1,68 +1,45 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import {
   Color,
   InstancedBufferAttribute,
   Object3D,
   Plane,
-  Vector2,
   Vector3,
   type InstancedMesh,
-  type MeshStandardMaterial,
 } from 'three';
-import { buildCore } from './core-geometry';
+import { buildCore, type CoreOptions } from './core-geometry';
+import { patchEmissive } from './core-material';
+import { useCorePointer } from './useCorePointer';
 
 // Geometry is a unit box; real edge length is set per-instance from data.scales.
 const SCATTER_RADIUS = 1.35; // cursor influence radius, in local units
 const SCATTER_PUSH = 0.85; // furthest a cube flies at the cursor's centre
 const SPRING_TAU = 0.13; // spring time constant (s) for push-out / return
 const IDLE_AMP = 0.02; // amplitude of the per-cube alive-at-rest drift
+const PARALLAX = 0.28; // how far the whole core leans with the cursor
 
 export interface TrustCoreProps {
   reducedMotion?: boolean;
-}
-
-/** Inject a per-instance emissive term into the standard material. InstancedMesh
- *  has no native per-instance emissive, so accent cubes can't "glow" on their own
- *  out of the box. We add an `aEmissive` instanced attribute and add
- *  `vColor * vEmissive` to the emissive radiance — only accents (strength > 0)
- *  light up, which is exactly what the selective bloom keys off of. */
-function patchEmissive(material: MeshStandardMaterial) {
-  material.onBeforeCompile = (shader) => {
-    shader.vertexShader = shader.vertexShader
-      .replace(
-        '#include <common>',
-        '#include <common>\nattribute float aEmissive;\nvarying float vEmissive;',
-      )
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvEmissive = aEmissive;');
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying float vEmissive;')
-      .replace(
-        '#include <emissivemap_fragment>',
-        '#include <emissivemap_fragment>\ntotalEmissiveRadiance += vColor * vEmissive;',
-      );
-  };
+  quality?: CoreOptions['quality'];
 }
 
 /** The instanced voxel core: a stable cluster with idle breathing rotation,
- *  per-instance emissive driving the bloom, and cursor-scatter — cubes near the
- *  pointer push outward (quadratic falloff, nearest fly furthest) then spring
- *  back when it leaves. Reduced-motion freezes everything to the resting frame. */
-export function TrustCore({ reducedMotion = false }: TrustCoreProps) {
+ *  per-instance emissive driving the bloom, cursor-scatter (cubes near the
+ *  pointer push outward, quadratic falloff, then spring back), and a gentle
+ *  parallax lean. Reduced-motion freezes everything to the resting frame. */
+export function TrustCore({ reducedMotion = false, quality = 'high' }: TrustCoreProps) {
   const meshRef = useRef<InstancedMesh>(null);
-  const data = useMemo(() => buildCore(), []);
+  const data = useMemo(() => buildCore(1337, { quality }), [quality]);
   const dummy = useMemo(() => new Object3D(), []);
-  const { camera, gl } = useThree();
+  const ptr = useCorePointer(!reducedMotion);
 
   // Live per-instance positions (spring toward the scatter target each frame).
   const cur = useMemo(() => new Float32Array(data.positions), [data]);
-  // Cursor tracking, all in refs so the frame loop allocates nothing.
-  const pointer = useRef(new Vector2());
-  const hovering = useRef(false);
   const scratch = useMemo(
-    () => ({ plane: new Plane(), cursor: new Vector3(), normal: new Vector3(), d: new Vector3() }),
+    () => ({ plane: new Plane(), cursor: new Vector3(), n: new Vector3(), d: new Vector3() }),
     [],
   );
 
@@ -84,49 +61,34 @@ export function TrustCore({ reducedMotion = false }: TrustCoreProps) {
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   }, [data, dummy]);
 
-  // Track the pointer over the canvas; leaving lets the cubes spring home.
-  useEffect(() => {
-    if (reducedMotion) return;
-    const el = gl.domElement;
-    const move = (e: PointerEvent) => {
-      const r = el.getBoundingClientRect();
-      pointer.current.set(
-        ((e.clientX - r.left) / r.width) * 2 - 1,
-        -((e.clientY - r.top) / r.height) * 2 + 1,
-      );
-      hovering.current = true;
-    };
-    const leave = () => (hovering.current = false);
-    el.addEventListener('pointermove', move);
-    el.addEventListener('pointerleave', leave);
-    return () => {
-      el.removeEventListener('pointermove', move);
-      el.removeEventListener('pointerleave', leave);
-    };
-  }, [gl, reducedMotion]);
-
   useFrame((state, delta) => {
     const mesh = meshRef.current;
     if (!mesh || reducedMotion) return;
     const t = state.clock.elapsedTime;
+    const hovering = ptr.hovering.current;
+    const ease = 1 - Math.exp(-delta / 0.25);
+
+    // Parallax: the whole core leans toward the cursor, returning to centre on leave.
+    mesh.position.x += ((hovering ? ptr.pointer.current.x * PARALLAX : 0) - mesh.position.x) * ease;
+    mesh.position.y +=
+      ((hovering ? ptr.pointer.current.y * PARALLAX * 0.7 : 0) - mesh.position.y) * ease;
     mesh.rotation.y = t * 0.15; // slow turntable
     mesh.scale.setScalar(1 + Math.sin(t * 0.8) * 0.02); // breathing
     mesh.updateMatrixWorld();
 
     // Cursor in the cluster's local frame (matches the base positions).
     let active = false;
-    if (hovering.current) {
-      camera.getWorldDirection(scratch.normal);
-      scratch.plane.setFromNormalAndCoplanarPoint(scratch.normal, mesh.position);
-      state.raycaster.setFromCamera(pointer.current, camera);
+    if (hovering) {
+      state.camera.getWorldDirection(scratch.n);
+      scratch.plane.setFromNormalAndCoplanarPoint(scratch.n, mesh.position);
+      state.raycaster.setFromCamera(ptr.pointer.current, state.camera);
       if (state.raycaster.ray.intersectPlane(scratch.plane, scratch.cursor)) {
         mesh.worldToLocal(scratch.cursor);
         active = true;
       }
     }
 
-    // Frame-rate-independent spring factor.
-    const k = 1 - Math.exp(-delta / SPRING_TAU);
+    const k = 1 - Math.exp(-delta / SPRING_TAU); // frame-rate-independent spring
     const { cursor, d } = scratch;
     for (let i = 0; i < data.count; i++) {
       const j = i * 3;
@@ -148,12 +110,10 @@ export function TrustCore({ reducedMotion = false }: TrustCoreProps) {
           tz += d.z * mag;
         }
       }
-      // Spring the live position toward the target.
       cur[j]! += (tx - cur[j]!) * k;
       cur[j + 1]! += (ty - cur[j + 1]!) * k;
       cur[j + 2]! += (tz - cur[j + 2]!) * k;
-      // Cosmetic idle drift so the cluster shimmers even at rest.
-      const ph = i * 0.7;
+      const ph = i * 0.7; // cosmetic idle drift so the cluster shimmers at rest
       dummy.position.set(
         cur[j]! + Math.sin(t * 0.8 + ph) * IDLE_AMP,
         cur[j + 1]! + Math.cos(t * 0.6 + ph) * IDLE_AMP,

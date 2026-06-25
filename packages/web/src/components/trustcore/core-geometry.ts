@@ -33,9 +33,15 @@ const NEUTRAL_LIGHT = '#C2CCE0'; // cool brushed metal, lifted so the silhouette
 const NEUTRAL_DARK = '#323A4C'; // cool shadow block, lifted off the void
 const ACCENTS = ['#3FE9E0', '#4A6BFF', '#C863F0', '#FF8FD6']; // cyan, blue, magenta, pink
 
-export function buildCore(seed = 1337): CoreData {
+export interface CoreOptions {
+  /** 'low' thins the grid and dust for mobile/low-power devices. */
+  quality?: 'high' | 'low';
+}
+
+export function buildCore(seed = 1337, { quality = 'high' }: CoreOptions = {}): CoreData {
   const rand = mulberry32(seed);
-  const N = 5; // grid spans -N..N on each axis
+  const low = quality === 'low';
+  const N = low ? 4 : 5; // grid spans -N..N on each axis
   const bound = N + 0.6;
   const spacing = 0.4; // a touch tighter so the whole core sits inside the frame
   const pos: number[] = [];
@@ -85,7 +91,7 @@ export function buildCore(seed = 1337): CoreData {
 
   // 2) Dust shell — hundreds of tiny motes scattered just outside the body, on a
   //    rounded-cube surface with jitter, so the edges dissolve into sparks.
-  const DUST = 340;
+  const DUST = low ? 150 : 340;
   const surf = bound * spacing;
   for (let i = 0; i < DUST; i++) {
     // Random direction; bias each axis toward the cube faces for a boxier shell.
