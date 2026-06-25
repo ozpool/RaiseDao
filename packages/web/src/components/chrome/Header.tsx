@@ -11,7 +11,7 @@ export function Header() {
           Raise<span className="text-signal">DAO</span>
         </Link>
         <nav className="flex items-center gap-6 font-sans text-small text-mist">
-          <Link href="/" className="transition-colors hover:text-paper">
+          <Link href="/campaigns" className="transition-colors hover:text-paper">
             Campaigns
           </Link>
           <Link href="/create" className="hidden transition-colors hover:text-paper sm:inline">
