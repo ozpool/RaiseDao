@@ -6,7 +6,7 @@ import { connectDB, disconnectDB } from './db.js';
 import { startIndexer, stopIndexer, type EventSink } from './indexer/index.js';
 import { createGateway, asSink, type RealtimeGateway, type Snapshot } from './realtime/index.js';
 import { buildNotifier } from './email/index.js';
-import { AnalyticsModel } from './models/index.js';
+import { MongoTallyStore } from './tally/store.js';
 
 async function main(): Promise<void> {
   const app = createApp();
@@ -36,11 +36,11 @@ async function main(): Promise<void> {
     });
 }
 
-/** Snapshot a campaign's current rollups so a (re)connecting client re-syncs. */
-const campaignSnapshot: Snapshot = async (campaignId) => {
-  const analytics = await AnalyticsModel.findOne({ campaignId }, { _id: 0, __v: 0 }).lean();
-  return { campaignId, analytics };
-};
+/** Snapshot a campaign's current tallies + rollups so a (re)connecting client
+ *  re-syncs its live state in one message — the same shape the /tally route
+ *  returns, so the web has a single model for both paths. */
+const tallyStore = new MongoTallyStore();
+const campaignSnapshot: Snapshot = (campaignId) => tallyStore.snapshot(campaignId);
 
 /** Run every sink for an event, isolating a failure in one from the others. */
 function combineSinks(sinks: EventSink[]): EventSink {
