@@ -68,7 +68,46 @@ export const api = {
     create: (input: DraftPayload, token: string) =>
       apiFetch<DraftRecord>('/drafts', { method: 'POST', body: input, token }),
   },
+  campaigns: {
+    list: (filters: CampaignFilters = {}) => {
+      const qs = new URLSearchParams();
+      if (filters.q) qs.set('q', filters.q);
+      if (filters.city) qs.set('city', filters.city);
+      if (filters.category) qs.set('category', filters.category);
+      if (filters.status) qs.set('status', filters.status);
+      if (filters.verified) qs.set('verified', 'true');
+      const suffix = qs.toString() ? `?${qs}` : '';
+      return apiFetch<{ campaigns: CampaignSummary[] }>(`/campaigns${suffix}`);
+    },
+  },
 };
+
+export interface CampaignFilters {
+  q?: string;
+  city?: string;
+  category?: string;
+  status?: string;
+  verified?: boolean;
+}
+
+/** A campaign card's data from the browse endpoint. */
+export interface CampaignSummary {
+  campaignId: number;
+  vault: string;
+  founder: string;
+  status: string;
+  title: string;
+  summary: string;
+  city: string;
+  category: string;
+  verified: boolean;
+  featured: boolean;
+  demo: boolean;
+  raiseTarget: string;
+  totalRaised: string;
+  fundingDeadline: number;
+  milestoneCount: number;
+}
 
 /** The draft payload the create wizard sends (percent already converted to bps). */
 export interface DraftPayload {
