@@ -20,5 +20,14 @@ export function campaignsRouter(store: CampaignStore): Router {
     res.status(200).json({ campaigns });
   });
 
+  router.get('/campaigns/:vault', async (req: Request, res: Response) => {
+    const campaign = await store.getByVault(req.params.vault!);
+    if (!campaign) {
+      res.status(404).json({ error: 'campaign not found' });
+      return;
+    }
+    res.status(200).json(campaign);
+  });
+
   return router;
 }

@@ -28,12 +28,44 @@ export interface CampaignSummary {
   milestoneCount: number;
 }
 
+export interface CampaignMilestone {
+  index: number;
+  pctBps: number;
+  status: string;
+  deadline: number;
+}
+
+/** The full campaign for the detail page — the summary plus the schedule and the
+ *  rest of the on-chain trio. */
+export interface CampaignDetail extends CampaignSummary {
+  token: string;
+  governor: string;
+  milestones: CampaignMilestone[];
+}
+
 export interface CampaignStore {
   list(filters: CampaignFilters): Promise<CampaignSummary[]>;
+  getByVault(vault: string): Promise<CampaignDetail | null>;
 }
 
 interface CampaignDoc extends Omit<CampaignSummary, 'milestoneCount'> {
-  milestones: unknown[];
+  token: string;
+  governor: string;
+  milestones: CampaignMilestone[];
+}
+
+function toDetail(c: CampaignDoc): CampaignDetail {
+  return {
+    ...toSummary(c),
+    token: c.token,
+    governor: c.governor,
+    milestones: (c.milestones ?? []).map((m, i) => ({
+      index: typeof m.index === 'number' ? m.index : i,
+      pctBps: m.pctBps || 0,
+      status: m.status || 'pending',
+      deadline: m.deadline || 0,
+    })),
+  };
 }
 
 function toSummary(c: CampaignDoc): CampaignSummary {
@@ -70,6 +102,11 @@ export class MongoCampaignStore implements CampaignStore {
     const docs = await CampaignModel.find(query).sort({ featured: -1, createdAt: -1 }).lean();
     return docs.map((d) => toSummary(d as unknown as CampaignDoc));
   }
+
+  async getByVault(vault: string): Promise<CampaignDetail | null> {
+    const doc = await CampaignModel.findOne({ vault: vault.toLowerCase() }).lean();
+    return doc ? toDetail(doc as unknown as CampaignDoc) : null;
+  }
 }
 
 /** In-memory store for tests and the demo seed. */
@@ -86,5 +123,10 @@ export class InMemoryCampaignStore implements CampaignStore {
       .filter((c) => (rx ? rx.test(c.title) || rx.test(c.city) || rx.test(c.category) : true))
       .sort((a, b) => Number(b.featured) - Number(a.featured))
       .map(toSummary);
+  }
+
+  async getByVault(vault: string): Promise<CampaignDetail | null> {
+    const doc = this.docs.find((c) => c.vault.toLowerCase() === vault.toLowerCase());
+    return doc ? toDetail(doc) : null;
   }
 }

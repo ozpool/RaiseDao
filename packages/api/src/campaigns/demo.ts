@@ -79,13 +79,23 @@ export function demoCampaigns() {
     },
   ];
 
+  // A plausible 3-step schedule; the first is active/passed for funded raises so
+  // the detail page shows progression rather than a flat list.
+  const schedule = (status: string) => [
+    { index: 0, pctBps: 4000, status: status === 'funding' ? 'pending' : 'passed', deadline: 0 },
+    { index: 1, pctBps: 3500, status: status === 'succeeded' ? 'passed' : 'pending', deadline: 0 },
+    { index: 2, pctBps: 2500, status: 'pending', deadline: 0 },
+  ];
+
   return base.map((c, i) => ({
     ...c,
     campaignId: 9001 + i,
     vault: addr(0xa000 + i),
+    token: addr(0xb000 + i),
+    governor: addr(0xc000 + i),
     founder: addr(0xf000 + i),
     demo: true,
     fundingDeadline: 0,
-    milestones: [{}, {}, {}],
+    milestones: schedule(c.status),
   }));
 }
