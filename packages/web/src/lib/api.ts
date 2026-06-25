@@ -79,6 +79,7 @@ export const api = {
       const suffix = qs.toString() ? `?${qs}` : '';
       return apiFetch<{ campaigns: CampaignSummary[] }>(`/campaigns${suffix}`);
     },
+    get: (vault: string) => apiFetch<CampaignDetail>(`/campaigns/${vault}`),
   },
 };
 
@@ -107,6 +108,20 @@ export interface CampaignSummary {
   totalRaised: string;
   fundingDeadline: number;
   milestoneCount: number;
+}
+
+export interface CampaignMilestone {
+  index: number;
+  pctBps: number;
+  status: string;
+  deadline: number;
+}
+
+/** Full campaign for the detail page. */
+export interface CampaignDetail extends CampaignSummary {
+  token: string;
+  governor: string;
+  milestones: CampaignMilestone[];
 }
 
 /** The draft payload the create wizard sends (percent already converted to bps). */

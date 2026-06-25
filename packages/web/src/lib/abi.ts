@@ -47,3 +47,54 @@ export const raiseFactoryAbi = [
     ],
   },
 ] as const;
+
+/** Minimal ERC-20 — the USDC reads/writes the contribute flow needs. */
+export const erc20Abi = [
+  {
+    type: 'function',
+    name: 'allowance',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'balanceOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'approve',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+] as const;
+
+/** Minimal RaiseVault ABI — contribute plus the event carrying minted votes. */
+export const raiseVaultAbi = [
+  {
+    type: 'function',
+    name: 'contribute',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'amount', type: 'uint256' }],
+    outputs: [],
+  },
+  {
+    type: 'event',
+    name: 'Contributed',
+    inputs: [
+      { name: 'investor', type: 'address', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false },
+      { name: 'votesMinted', type: 'uint256', indexed: false },
+    ],
+  },
+] as const;
