@@ -113,7 +113,13 @@ export function CampaignDetailView({ vault }: { vault: string }) {
         </h2>
         <Schedule milestones={c.milestones} />
 
-        <EvidenceSection campaignId={c.campaignId} founder={c.founder} milestones={c.milestones} />
+        <EvidenceSection
+          campaignId={c.campaignId}
+          vault={c.vault}
+          governor={c.governor}
+          founder={c.founder}
+          milestones={c.milestones}
+        />
 
         <h2 className="mb-3 mt-10 font-mono text-caption uppercase tracking-widest text-mist">
           Contracts
