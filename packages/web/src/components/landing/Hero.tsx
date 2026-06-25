@@ -46,11 +46,13 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="relative mx-auto aspect-square w-full min-w-0 max-w-[58vh] border border-line lg:justify-self-end">
-          <span className="absolute left-3 top-3 z-10 border border-dashed border-mist px-2 py-0.5 font-mono text-caption uppercase tracking-wide text-mist">
-            Preview — not live
-          </span>
-          <VaultCanvas fillLevel={0.62} state="live" lod="full" mock reducedMotion={reduced} />
+        <div className="mx-auto w-full min-w-0 max-w-[58vh] lg:justify-self-end">
+          <div className="relative aspect-square w-full">
+            <VaultCanvas fillLevel={0.62} state="live" lod="full" mock reducedMotion={reduced} />
+          </div>
+          <p className="mt-4 text-center font-mono text-caption uppercase tracking-widest text-mist lg:text-right">
+            Vault preview · not live data
+          </p>
         </div>
       </div>
     </section>
