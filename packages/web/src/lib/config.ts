@@ -13,3 +13,7 @@ export const FACTORY_ADDRESS: `0x${string}` | undefined =
 
 /** Arbiscan base for the active testnet — used to link transactions/addresses. */
 export const EXPLORER_URL = 'https://sepolia.arbiscan.io';
+
+/** Circle USDC on Arbitrum Sepolia (6 decimals) — the contribution currency. */
+export const USDC_ADDRESS: `0x${string}` = '0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d';
+export const USDC_DECIMALS = 6;

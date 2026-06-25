@@ -52,4 +52,17 @@ describe('GET /campaigns', () => {
     const res = await request(app()).get('/campaigns?q=zzz-no-match');
     expect(res.body.campaigns).toEqual([]);
   });
+
+  it('returns a single campaign with its schedule by vault address', async () => {
+    const demo = demoCampaigns()[0]!;
+    const res = await request(app()).get(`/campaigns/${demo.vault}`);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ vault: demo.vault, token: expect.any(String) });
+    expect(res.body.milestones.length).toBeGreaterThan(0);
+  });
+
+  it('404s an unknown vault', async () => {
+    const res = await request(app()).get('/campaigns/0x0000000000000000000000000000000000000000');
+    expect(res.status).toBe(404);
+  });
 });
