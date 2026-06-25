@@ -44,6 +44,42 @@ export function buildMilestoneProposal(
   };
 }
 
+/** The deterministic args passed to governor.queue and governor.execute.
+ *  targets/values/calldatas are the same as at propose-time; the descriptionHash
+ *  must be keccak256 of the EXACT persisted description string — any drift causes
+ *  the governor to revert with "Governor: invalid proposal id". */
+export interface ExecuteArgs {
+  targets: readonly `0x${string}`[];
+  values: readonly bigint[];
+  calldatas: readonly `0x${string}`[];
+  descriptionHash: `0x${string}`;
+}
+
+/** Build the queue/execute call arguments from the stored proposal fields.
+ *  Reuses the same releaseMilestone encoding as buildMilestoneProposal, but
+ *  accepts the persisted description directly so the hash stays in sync with
+ *  what the governor recorded at propose-time. */
+export function buildExecuteArgs(
+  vault: `0x${string}`,
+  milestoneIndex: number,
+  description: string,
+): ExecuteArgs {
+  // Encode the vault call that the governor will forward on execution.
+  const calldata = encodeFunctionData({
+    abi: raiseVaultAbi,
+    functionName: 'releaseMilestone',
+    args: [BigInt(milestoneIndex)],
+  });
+
+  return {
+    targets: [vault],
+    values: [0n],
+    calldatas: [calldata],
+    // keccak256(toHex(description)) — must match what the governor hashed at propose-time.
+    descriptionHash: keccak256(toHex(description)),
+  };
+}
+
 /** Pull the proposalId out of the ProposalCreated event in a confirmed propose
  *  receipt. Returns the uint256 as a decimal string (how the API stores it).
  *  Null if the event isn't present — the caller surfaces that rather than

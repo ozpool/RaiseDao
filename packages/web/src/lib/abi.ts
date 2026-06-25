@@ -191,6 +191,34 @@ export const milestoneGovernorAbi = [
     outputs: [{ name: '', type: 'uint256' }],
   },
   {
+    // Queue a succeeded proposal through the timelock. Permissionless in OZ v5.
+    type: 'function',
+    name: 'queue',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'descriptionHash', type: 'bytes32' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    // Execute a queued proposal once the timelock eta has passed. Permissionless.
+    // payable because OZ Governor forwards msg.value to targets (vault value is 0
+    // here, but the ABI must match the on-chain signature).
+    type: 'function',
+    name: 'execute',
+    stateMutability: 'payable',
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'descriptionHash', type: 'bytes32' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
     type: 'event',
     name: 'ProposalCreated',
     inputs: [
