@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
   // never inlined as template literals). `asset/source` needs no extra loader.
   webpack: (config) => {
     config.module.rules.push({ test: /\.glsl$/, type: 'asset/source' });
+    // The MetaMask SDK (pulled in by wagmi's injected connector) optionally
+    // imports a React-Native storage module that doesn't exist in a browser
+    // build. Stub it so webpack doesn't emit a noisy "module not found".
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      '@react-native-async-storage/async-storage': false,
+    };
     return config;
   },
 };

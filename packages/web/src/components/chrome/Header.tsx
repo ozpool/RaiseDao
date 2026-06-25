@@ -1,7 +1,8 @@
 import Link from 'next/link';
+import { ConnectButton } from '@/components/wallet/ConnectButton';
 
-/** Site header chrome. Server component — no interactivity yet; wallet connect
- *  arrives with #19. The wordmark is the only `signal` use here. */
+/** Site header chrome. The wordmark is the only `signal` use here; the wallet
+ *  connect control is the one interactive island in the nav. */
 export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-void/80 backdrop-blur">
@@ -13,9 +14,10 @@ export function Header() {
           <Link href="/" className="transition-colors hover:text-paper">
             Campaigns
           </Link>
-          <Link href="/" className="transition-colors hover:text-paper">
+          <Link href="/" className="hidden transition-colors hover:text-paper sm:inline">
             How it works
           </Link>
+          <ConnectButton />
         </nav>
       </div>
     </header>

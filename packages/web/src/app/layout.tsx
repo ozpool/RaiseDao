@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 import localFont from 'next/font/local';
 import './globals.css';
+import { Web3Providers } from '@/components/providers/Web3Providers';
 import { LenisProvider } from '@/components/providers/LenisProvider';
 
 // Display face for oversized editorial headlines and the wordmark (UI.md §2).
@@ -38,7 +39,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
       <body className="min-h-screen antialiased">
-        <LenisProvider>{children}</LenisProvider>
+        <Web3Providers>
+          <LenisProvider>{children}</LenisProvider>
+        </Web3Providers>
       </body>
     </html>
   );
