@@ -1,13 +1,42 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { EXPLORER_URL } from '@/lib/config';
-import { useDeployCampaign } from '@/hooks/useDeployCampaign';
-import type { DraftRecord } from '@/lib/api';
+import {
+  useDeployCampaign,
+  type DeployParams,
+  type DeployedCampaign,
+} from '@/hooks/useDeployCampaign';
+import { useAuthStore } from '@/stores/auth';
+import { api, type DraftRecord, type CampaignCreatePayload } from '@/lib/api';
 
 const PRIMARY =
   'rounded-full bg-data px-5 py-2 font-mono text-caption uppercase tracking-widest text-void transition-opacity hover:opacity-90 disabled:opacity-40';
+
+/** Combine the draft's display metadata with the on-chain addresses and the exact
+ *  deadlines that were deployed, into the campaign-persistence payload. */
+function toCreatePayload(
+  draft: DraftRecord,
+  result: DeployedCampaign,
+  params: DeployParams,
+): CampaignCreatePayload {
+  return {
+    campaignId: Number(result.id),
+    vault: result.vault,
+    token: result.token,
+    governor: result.governor,
+    title: draft.title,
+    summary: draft.summary,
+    raiseTarget: draft.raiseTarget,
+    fundingDeadline: Number(params.fundingDeadline),
+    milestones: draft.milestones.map((m, i) => ({
+      pctBps: m.pctBps,
+      deadline: Number(params.deadlines[i] ?? 0n),
+    })),
+  };
+}
 
 /** The on-chain deploy step (#24). Drives RaiseFactory.deploy for a saved draft
  *  and walks the transaction from wallet-confirm through mining to the new
@@ -15,15 +44,30 @@ const PRIMARY =
  *  "not configured" note when no factory is set for the network. */
 export function DeployPanel({ draft }: { draft: DraftRecord }) {
   const router = useRouter();
-  const { deploy, phase, hash, result, error, configured } = useDeployCampaign(draft);
+  const token = useAuthStore((s) => s.token);
+  const { deploy, phase, hash, result, params, error, configured } = useDeployCampaign(draft);
+  // Whether the off-chain metadata write that backs the campaign page succeeded.
+  const [saveFailed, setSaveFailed] = useState(false);
 
-  // Once mined, hand off to the new campaign's page.
+  // Once mined, persist the campaign's display metadata (so its page resolves),
+  // then hand off. The deploy is already on-chain; if the save fails we don't
+  // fake success — we say so and let the user retry from the browse page.
   useEffect(() => {
-    if (result) {
-      const t = setTimeout(() => router.push(`/campaigns/${result.vault}`), 1200);
-      return () => clearTimeout(t);
-    }
-  }, [result, router]);
+    if (!result || !params) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        if (!token) throw new Error('no session token');
+        await api.campaigns.create(toCreatePayload(draft, result, params), token);
+        if (!cancelled) router.push(`/campaigns/${result.vault}`);
+      } catch {
+        if (!cancelled) setSaveFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [result, params, token, draft, router]);
 
   if (!configured) {
     return (
@@ -42,7 +86,18 @@ export function DeployPanel({ draft }: { draft: DraftRecord }) {
           Deployed on-chain
         </p>
         <p className="font-sans text-small text-mist">Vault {result.vault}</p>
-        <p className="font-sans text-caption text-mist">Taking you to the campaign…</p>
+        {saveFailed ? (
+          <p className="font-sans text-caption text-signal">
+            Your campaign is live on-chain, but saving its page didn&apos;t go through. It&apos;ll
+            appear once the indexer syncs —{' '}
+            <Link href={`/campaigns/${result.vault}`} className="text-data hover:opacity-80">
+              try the page
+            </Link>
+            .
+          </p>
+        ) : (
+          <p className="font-sans text-caption text-mist">Saving and taking you to the campaign…</p>
+        )}
       </div>
     );
   }
