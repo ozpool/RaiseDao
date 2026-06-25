@@ -6,6 +6,7 @@ import { useCampaign } from '@/hooks/useCampaign';
 import type { CampaignMilestone } from '@/lib/api';
 import { FundingBar } from './FundingBar';
 import { ContributePanel } from './ContributePanel';
+import { EvidenceSection } from './evidence/EvidenceSection';
 
 const STATUS_LABEL: Record<string, string> = {
   funding: 'Funding',
@@ -111,6 +112,8 @@ export function CampaignDetailView({ vault }: { vault: string }) {
           Milestone schedule
         </h2>
         <Schedule milestones={c.milestones} />
+
+        <EvidenceSection campaignId={c.campaignId} founder={c.founder} milestones={c.milestones} />
 
         <h2 className="mb-3 mt-10 font-mono text-caption uppercase tracking-widest text-mist">
           Contracts

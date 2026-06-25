@@ -33,14 +33,22 @@ interface RequestOptions {
 /** One typed fetch wrapper for every call: JSON in/out, bearer auth when given,
  *  and a thrown ApiError (never a silent failure) on any non-2xx. */
 async function apiFetch<T>(path: string, opts: RequestOptions = {}): Promise<T> {
+  // FormData carries its own multipart boundary, so we must NOT set
+  // Content-Type ourselves (the browser appends the boundary) nor JSON-encode it.
   const headers: Record<string, string> = {};
-  if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
+  let body: BodyInit | undefined;
+  if (opts.body instanceof FormData) {
+    body = opts.body;
+  } else if (opts.body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+    body = JSON.stringify(opts.body);
+  }
   if (opts.token) headers['Authorization'] = `Bearer ${opts.token}`;
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: opts.method ?? 'GET',
     headers,
-    body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+    body,
   });
 
   const data: unknown = await res.json().catch(() => null);
@@ -82,6 +90,17 @@ export const api = {
     get: (vault: string) => apiFetch<CampaignDetail>(`/campaigns/${vault}`),
     create: (input: CampaignCreatePayload, token: string) =>
       apiFetch<CampaignDetail>('/campaigns', { method: 'POST', body: input, token }),
+  },
+  evidence: {
+    list: (campaignId: number) =>
+      apiFetch<{ evidence: EvidenceRecord[] }>(`/evidence?campaignId=${campaignId}`),
+    upload: (input: EvidenceUploadInput, token: string) => {
+      const form = new FormData();
+      form.append('file', input.file);
+      form.append('campaignId', String(input.campaignId));
+      form.append('milestoneIndex', String(input.milestoneIndex));
+      return apiFetch<EvidencePinResult>('/evidence', { method: 'POST', body: form, token });
+    },
   },
 };
 
@@ -140,6 +159,34 @@ export interface CampaignCreatePayload {
   raiseTarget: string;
   fundingDeadline: number;
   milestones: { pctBps: number; deadline: number }[];
+}
+
+/** One pinned milestone-evidence file as the investor-facing list returns it. */
+export interface EvidenceRecord {
+  campaignId: number;
+  milestoneIndex: number;
+  cid: string;
+  provider: string;
+  filename: string;
+  size: number;
+  uploadedBy: string;
+  createdAt?: string;
+}
+
+/** Result of a successful pin (#28): the CID is the durable handle a later
+ *  on-chain proposal (#29) references. */
+export interface EvidencePinResult {
+  cid: string;
+  provider: string;
+  campaignId: number;
+  milestoneIndex: number;
+}
+
+/** What the founder's client sends to pin a file against a milestone. */
+export interface EvidenceUploadInput {
+  file: File;
+  campaignId: number;
+  milestoneIndex: number;
 }
 
 /** The draft payload the create wizard sends (percent already converted to bps). */
