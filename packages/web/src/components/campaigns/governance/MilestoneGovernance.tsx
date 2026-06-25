@@ -39,6 +39,9 @@ export function MilestoneGovernance({
       <ProposalBallot
         governor={governor as `0x${string}`}
         proposalId={proposal.proposalId}
+        vault={proposal.vault}
+        milestoneIndex={proposal.milestoneIndex}
+        description={proposal.description}
         tally={tallies.get(proposal.proposalId)}
         syncing={syncing}
       />

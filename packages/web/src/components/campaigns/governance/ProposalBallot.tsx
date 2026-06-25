@@ -7,6 +7,7 @@ import { useBallot, ProposalState, Support } from '@/hooks/useBallot';
 import type { Tally } from '@/lib/api';
 import { QuorumBar } from './QuorumBar';
 import { TimelockRing } from './TimelockRing';
+import { ExecutePanel } from './ExecutePanel';
 
 const STATE_LABEL: Record<number, string> = {
   [ProposalState.Pending]: 'Voting opens soon',
@@ -27,11 +28,18 @@ const STATE_LABEL: Record<number, string> = {
 export function ProposalBallot({
   governor,
   proposalId,
+  vault,
+  milestoneIndex,
+  description,
   tally,
   syncing,
 }: {
   governor: `0x${string}`;
   proposalId: string;
+  /** Needed by ExecutePanel to reconstruct the deterministic queue/execute args. */
+  vault: string;
+  milestoneIndex: number;
+  description: string;
   tally?: Tally;
   syncing: boolean;
 }) {
@@ -69,6 +77,17 @@ export function ProposalBallot({
       </p>
 
       <TimelockRing eta={b.eta} state={b.state} />
+
+      {/* ExecutePanel decides internally what to show per state — renders null
+          during Pending/Active so it never steps on the vote buttons below. */}
+      <ExecutePanel
+        governor={governor}
+        vault={vault as `0x${string}`}
+        milestoneIndex={milestoneIndex}
+        description={description}
+        state={b.state}
+        eta={b.eta}
+      />
 
       {canVote && (
         <div className="mt-3 flex gap-3">
