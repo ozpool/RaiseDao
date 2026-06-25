@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../auth/middleware.js';
 import type { CampaignFilters, CampaignStore } from '../campaigns/store.js';
+import type { FounderVerifier } from '../campaigns/verify.js';
 
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'must be a 20-byte hex address');
 const decimal = z.string().regex(/^\d+(\.\d+)?$/, 'must be a non-negative number');
@@ -42,8 +43,9 @@ const createBody = z
 
 /** Public campaign browse (#25) + the post-deploy persistence bridge (#27). The
  *  list/detail reads are public; creating a campaign requires the founder's
- *  session, since it asserts ownership of a freshly-deployed vault. */
-export function campaignsRouter(store: CampaignStore): Router {
+ *  session AND on-chain proof that the caller is the vault's founder, so a
+ *  signed-in user can't claim-jack a vault address they don't own. */
+export function campaignsRouter(store: CampaignStore, verifyFounder: FounderVerifier): Router {
   const router = Router();
 
   router.get('/campaigns', async (req: Request, res: Response) => {
@@ -76,12 +78,26 @@ export function campaignsRouter(store: CampaignStore): Router {
       return;
     }
     const b = parsed.data;
+
+    // The session proves who is calling; the chain proves they own this vault.
+    // Reject (fail closed) unless the vault's on-chain founder is the caller.
+    const caller = req.user!.address.toLowerCase();
+    const onchainFounder = await verifyFounder(b.vault);
+    if (!onchainFounder) {
+      res.status(400).json({ error: 'vault is not a deployed campaign' });
+      return;
+    }
+    if (onchainFounder !== caller) {
+      res.status(403).json({ error: 'only the vault founder can register this campaign' });
+      return;
+    }
+
     const campaign = await store.create({
       campaignId: b.campaignId,
       vault: b.vault,
       token: b.token,
       governor: b.governor,
-      founder: req.user!.address,
+      founder: caller,
       status: 'funding',
       title: b.title,
       summary: b.summary,

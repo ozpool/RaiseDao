@@ -3,6 +3,7 @@ import request from 'supertest';
 import { createApp } from '../app.js';
 import { signToken } from '../auth/jwt.js';
 import { InMemoryCampaignStore } from '../campaigns/store.js';
+import type { FounderVerifier } from '../campaigns/verify.js';
 import { demoCampaigns } from '../campaigns/demo.js';
 
 function app() {
@@ -93,8 +94,13 @@ describe('GET /campaigns', () => {
 });
 
 describe('POST /campaigns (deploy bridge)', () => {
-  function freshApp() {
-    return createApp({ campaignStore: new InMemoryCampaignStore([]) });
+  // Default stub: the chain reports FOUNDER as the vault's owner. Tests that
+  // exercise the ownership guard pass their own verifier.
+  function freshApp(verifyFounder: FounderVerifier = async () => FOUNDER) {
+    return createApp({
+      campaignStore: new InMemoryCampaignStore([]),
+      campaignFounderVerifier: verifyFounder,
+    });
   }
 
   it('persists a deployed campaign so its detail page then resolves', async () => {
@@ -132,17 +138,37 @@ describe('POST /campaigns (deploy bridge)', () => {
     expect(res.body).toMatchObject({ verified: false, featured: false, demo: false });
   });
 
-  it('is idempotent by vault and never clobbers the first writer', async () => {
+  it('is idempotent when the same founder registers a vault twice', async () => {
     const app = freshApp();
     const body = validCampaign();
     await request(app).post('/campaigns').set('Authorization', authHeader()).send(body);
     const second = await request(app)
       .post('/campaigns')
-      .set('Authorization', authHeader(OTHER))
-      .send({ ...body, title: 'Hijacked' });
+      .set('Authorization', authHeader())
+      .send({ ...body, title: 'Renamed' });
 
-    expect(second.body.founder).toBe(FOUNDER);
-    expect(second.body.title).toBe('Solar microgrid');
+    expect(second.status).toBe(201);
+    expect(second.body.title).toBe('Solar microgrid'); // first write wins, not clobbered
+  });
+
+  it('rejects a caller who is not the on-chain founder (claim-jack) with 403', async () => {
+    // The chain says FOUNDER owns the vault; OTHER signs in and tries to claim it.
+    const app = freshApp(async () => FOUNDER);
+    const res = await request(app)
+      .post('/campaigns')
+      .set('Authorization', authHeader(OTHER))
+      .send(validCampaign());
+    expect(res.status).toBe(403);
+  });
+
+  it('rejects a vault that is not a deployed campaign with 400', async () => {
+    const app = freshApp(async () => null); // chain can't resolve a founder
+    const res = await request(app)
+      .post('/campaigns')
+      .set('Authorization', authHeader())
+      .send(validCampaign());
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/not a deployed campaign/);
   });
 
   it('rejects an unauthenticated create with 401', async () => {
