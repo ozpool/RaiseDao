@@ -79,7 +79,9 @@ export const erc20Abi = [
   },
 ] as const;
 
-/** Minimal RaiseVault ABI — contribute plus the event carrying minted votes. */
+/** Minimal RaiseVault ABI — contribute plus the event carrying minted votes.
+ *  releaseMilestone is here only so the proposal flow can encode it as the
+ *  governor's call target; it's onlyGovernor on-chain, never called directly. */
 export const raiseVaultAbi = [
   {
     type: 'function',
@@ -89,12 +91,104 @@ export const raiseVaultAbi = [
     outputs: [],
   },
   {
+    type: 'function',
+    name: 'releaseMilestone',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'index', type: 'uint256' }],
+    outputs: [],
+  },
+  {
     type: 'event',
     name: 'Contributed',
     inputs: [
       { name: 'investor', type: 'address', indexed: true },
       { name: 'amount', type: 'uint256', indexed: false },
       { name: 'votesMinted', type: 'uint256', indexed: false },
+    ],
+  },
+] as const;
+
+/** Minimal MilestoneGovernor ABI — the propose/vote surface plus the reads the
+ *  ballot needs (state, snapshot, per-voter weight, hasVoted). OZ Governor v5.
+ *  Live For/Against tallies are deliberately absent here; they arrive with the
+ *  indexer (#30). support codes: 0 = Against, 1 = For, 2 = Abstain. */
+export const milestoneGovernorAbi = [
+  {
+    type: 'function',
+    name: 'propose',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'description', type: 'string' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'castVote',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'proposalId', type: 'uint256' },
+      { name: 'support', type: 'uint8' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'state',
+    stateMutability: 'view',
+    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    outputs: [{ name: '', type: 'uint8' }],
+  },
+  {
+    type: 'function',
+    name: 'proposalSnapshot',
+    stateMutability: 'view',
+    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'proposalDeadline',
+    stateMutability: 'view',
+    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'getVotes',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'account', type: 'address' },
+      { name: 'timepoint', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'hasVoted',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'proposalId', type: 'uint256' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
+  {
+    type: 'event',
+    name: 'ProposalCreated',
+    inputs: [
+      { name: 'proposalId', type: 'uint256', indexed: false },
+      { name: 'proposer', type: 'address', indexed: false },
+      { name: 'targets', type: 'address[]', indexed: false },
+      { name: 'values', type: 'uint256[]', indexed: false },
+      { name: 'signatures', type: 'string[]', indexed: false },
+      { name: 'calldatas', type: 'bytes[]', indexed: false },
+      { name: 'voteStart', type: 'uint256', indexed: false },
+      { name: 'voteEnd', type: 'uint256', indexed: false },
+      { name: 'description', type: 'string', indexed: false },
     ],
   },
 ] as const;

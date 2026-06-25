@@ -6,3 +6,4 @@ export { AnalyticsModel, type Analytics } from './Analytics.js';
 export { CheckpointModel, type Checkpoint } from './Checkpoint.js';
 export { EvidenceModel, type Evidence } from './Evidence.js';
 export { DraftModel, type Draft } from './Draft.js';
+export { ProposalModel, type Proposal } from './Proposal.js';

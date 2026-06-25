@@ -91,6 +91,11 @@ export const api = {
     create: (input: CampaignCreatePayload, token: string) =>
       apiFetch<CampaignDetail>('/campaigns', { method: 'POST', body: input, token }),
   },
+  proposals: {
+    list: (vault: string) => apiFetch<{ proposals: ProposalRecord[] }>(`/proposals?vault=${vault}`),
+    create: (input: ProposalCreatePayload, token: string) =>
+      apiFetch<ProposalRecord>('/proposals', { method: 'POST', body: input, token }),
+  },
   evidence: {
     list: (campaignId: number) =>
       apiFetch<{ evidence: EvidenceRecord[] }>(`/evidence?campaignId=${campaignId}`),
@@ -159,6 +164,36 @@ export interface CampaignCreatePayload {
   raiseTarget: string;
   fundingDeadline: number;
   milestones: { pctBps: number; deadline: number }[];
+}
+
+/** A persisted milestone proposal (#29) — the discovery handle the ballot uses
+ *  to find the on-chain proposalId; live state/weight are read on-chain. */
+export interface ProposalRecord {
+  campaignId: number;
+  vault: string;
+  governor: string;
+  proposalId: string;
+  milestoneIndex: number;
+  descriptionHash: string;
+  description: string;
+  evidenceCid: string;
+  proposer: string;
+  txHash: string;
+  createdAt?: string;
+}
+
+/** What the founder's client posts after the propose tx confirms. proposer is
+ *  set from the session server-side; the API re-checks it against the founder. */
+export interface ProposalCreatePayload {
+  campaignId: number;
+  vault: string;
+  governor: string;
+  proposalId: string;
+  milestoneIndex: number;
+  descriptionHash: string;
+  description: string;
+  evidenceCid: string;
+  txHash: string;
 }
 
 /** One pinned milestone-evidence file as the investor-facing list returns it. */

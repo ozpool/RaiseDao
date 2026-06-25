@@ -10,6 +10,8 @@ import { MongoAuthStore, type AuthStore } from './auth/store.js';
 import { MongoEvidenceStore } from './evidence/store.js';
 import { MongoDraftStore, type DraftStore } from './drafts/store.js';
 import { MongoCampaignStore, type CampaignStore } from './campaigns/store.js';
+import { proposalsRouter } from './routes/proposals.js';
+import { MongoProposalStore, type ProposalStore } from './proposals/store.js';
 import { ethersFounderVerifier, type FounderVerifier } from './campaigns/verify.js';
 import { buildProviders } from './evidence/providers.js';
 import { config } from './config.js';
@@ -26,6 +28,8 @@ export interface AppDeps {
   campaignStore?: CampaignStore;
   /** Override on-chain founder verification (tests inject a stub, no RPC). */
   campaignFounderVerifier?: FounderVerifier;
+  /** Override the proposal persistence (tests inject an in-memory store). */
+  proposalStore?: ProposalStore;
 }
 
 /** Build the Express app with no side effects (no listen, no DB), so tests can
@@ -39,6 +43,7 @@ export function createApp(deps: AppDeps = {}): Express {
   };
   const draftStore = deps.draftStore ?? new MongoDraftStore();
   const campaignStore = deps.campaignStore ?? new MongoCampaignStore();
+  const proposalStore = deps.proposalStore ?? new MongoProposalStore();
   const verifyFounder = deps.campaignFounderVerifier ?? ethersFounderVerifier(config.RPC_URL);
   const app = express();
 
@@ -50,6 +55,7 @@ export function createApp(deps: AppDeps = {}): Express {
   app.use(evidenceRouter(evidence));
   app.use(draftsRouter(draftStore));
   app.use(campaignsRouter(campaignStore, verifyFounder));
+  app.use(proposalsRouter(proposalStore, campaignStore));
 
   app.use(notFound);
   app.use(errorHandler);

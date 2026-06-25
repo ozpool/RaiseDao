@@ -5,16 +5,22 @@ import type { CampaignMilestone } from '@/lib/api';
 import { useEvidence, groupByMilestone } from '@/hooks/useEvidence';
 import { EvidenceItem } from './EvidenceItem';
 import { EvidenceUpload } from './EvidenceUpload';
+import { MilestoneGovernance } from '../governance/MilestoneGovernance';
 
-/** The campaign detail page's evidence block: every milestone with its pinned
- *  proof, newest first. Investors review inline; the founder (and only the
- *  founder, matched by connected wallet) gets an upload control per milestone. */
+/** The campaign detail page's evidence + governance block: every milestone with
+ *  its pinned proof (newest first) and its release vote. Investors review and
+ *  vote; the founder (matched by connected wallet) uploads evidence and opens
+ *  the vote. */
 export function EvidenceSection({
   campaignId,
+  vault,
+  governor,
   founder,
   milestones,
 }: {
   campaignId: number;
+  vault: string;
+  governor: string;
   founder: string;
   milestones: CampaignMilestone[];
 }) {
@@ -26,7 +32,7 @@ export function EvidenceSection({
   return (
     <section>
       <h2 className="mb-3 mt-10 font-mono text-caption uppercase tracking-widest text-mist">
-        Milestone evidence
+        Milestone evidence &amp; voting
       </h2>
       <div className="space-y-6">
         {milestones.map((m) => {
@@ -51,6 +57,15 @@ export function EvidenceSection({
               )}
 
               {isFounder && <EvidenceUpload campaignId={campaignId} milestoneIndex={m.index} />}
+
+              <MilestoneGovernance
+                campaignId={campaignId}
+                vault={vault}
+                governor={governor}
+                founder={founder}
+                milestoneIndex={m.index}
+                evidenceCid={items[0]?.cid ?? ''}
+              />
             </div>
           );
         })}
