@@ -38,3 +38,9 @@ Thumbs.db
 CLAUDE.md
 graphify-out/
 .code-review-graph/
+
+# Playwright MCP verification artifacts (local only)
+.playwright-mcp/
+
+# Local dev-recovery artifacts
+.next.broken/

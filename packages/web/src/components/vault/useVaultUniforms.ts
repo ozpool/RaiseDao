@@ -5,7 +5,8 @@ import type { VaultProps } from './types';
 /** Token colors the shader needs, kept in one place (UI.md §2). */
 const COLORS = {
   base: '#13151A', // panel
-  fill: '#4F7CFF', // signal
+  fill: '#3A5BE0', // signal, deepened so the cyan edge reads as the energy
+  data: '#38E0D8', // cyan data accent — rim + waterline glow
   gold: '#E8B86D', // gold-unlock
   mist: '#8A8F9C', // mist
 };
@@ -18,6 +19,7 @@ export interface VaultUniforms {
   uFresnelPow: IUniform<number>;
   uColorBase: IUniform<Color>;
   uColorFill: IUniform<Color>;
+  uColorData: IUniform<Color>;
   uColorGold: IUniform<Color>;
   uColorMist: IUniform<Color>;
   [uniform: string]: IUniform;
@@ -42,6 +44,7 @@ export function useVaultUniforms() {
       uFresnelPow: { value: 3.0 },
       uColorBase: { value: new Color(COLORS.base) },
       uColorFill: { value: new Color(COLORS.fill) },
+      uColorData: { value: new Color(COLORS.data) },
       uColorGold: { value: new Color(COLORS.gold) },
       uColorMist: { value: new Color(COLORS.mist) },
     }),

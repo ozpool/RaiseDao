@@ -1,8 +1,18 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { LenisProvider } from '@/components/providers/LenisProvider';
+
+// Display face for oversized editorial headlines and the wordmark (UI.md §2).
+// Variable woff2 self-hosted — one file covers the 200–700 weight axis.
+const display = localFont({
+  src: './fonts/ClashDisplay-Variable.woff2',
+  variable: '--font-clash',
+  weight: '200 700',
+  display: 'swap',
+});
 
 // Self-hosted at build time (zero layout shift, no external request at runtime).
 const sans = IBM_Plex_Sans({
@@ -26,7 +36,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
       <body className="min-h-screen antialiased">
         <LenisProvider>{children}</LenisProvider>
       </body>

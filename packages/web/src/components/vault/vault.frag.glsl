@@ -12,7 +12,8 @@ uniform float uUnlock; // 0..1 ambient gold while unlocking
 uniform float uPlaceholder; // 0..1 desaturation for mocked (non-live) data
 uniform float uFresnelPow; // rim falloff (~3.0)
 uniform vec3 uColorBase; // panel
-uniform vec3 uColorFill; // signal
+uniform vec3 uColorFill; // signal — the filled mass below the waterline
+uniform vec3 uColorData; // cyan — rim glow and the glowing waterline edge
 uniform vec3 uColorGold; // gold-unlock
 uniform vec3 uColorMist; // mist, for the placeholder treatment
 
@@ -38,9 +39,13 @@ void main() {
   float fill = smoothstep(uFillLevel - 0.02, uFillLevel + 0.02, h);
   vec3 col = mix(uColorFill, uColorBase, fill); // filled (signal) below the line
 
-  // Fresnel rim glow.
+  // A glowing cyan band right at the waterline — the data level reads as energy.
+  float band = smoothstep(0.06, 0.0, abs(h - uFillLevel));
+  col += uColorData * band * 0.6;
+
+  // Fresnel rim glow in the cyan data accent for two-tone depth.
   float fres = pow(1.0 - max(dot(n, viewDir), 0.0), uFresnelPow);
-  col += uColorFill * fres * 0.6;
+  col += uColorData * fres * 0.6;
   col += uColorGold * fres * uUnlock * 0.5; // gold rim while unlocking
 
   // Seam definition: a constant hairline, plus the gold release pulse.
