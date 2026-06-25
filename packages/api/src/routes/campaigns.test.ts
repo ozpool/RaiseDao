@@ -1,11 +1,36 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { createApp } from '../app.js';
+import { signToken } from '../auth/jwt.js';
 import { InMemoryCampaignStore } from '../campaigns/store.js';
 import { demoCampaigns } from '../campaigns/demo.js';
 
 function app() {
   return createApp({ campaignStore: new InMemoryCampaignStore(demoCampaigns()) });
+}
+
+const FOUNDER = '0x1234567890123456789012345678901234567890';
+const OTHER = '0x9999999999999999999999999999999999999999';
+
+function authHeader(address = FOUNDER): string {
+  return `Bearer ${signToken({ address, roles: ['founder'] })}`;
+}
+
+function validCampaign() {
+  return {
+    campaignId: 1,
+    vault: '0xaaaa000000000000000000000000000000000001',
+    token: '0xbbbb000000000000000000000000000000000001',
+    governor: '0xcccc000000000000000000000000000000000001',
+    title: 'Solar microgrid',
+    summary: 'Off-grid power for rural clinics.',
+    raiseTarget: '50000',
+    fundingDeadline: 1_900_000_000,
+    milestones: [
+      { pctBps: 4000, deadline: 1_900_100_000 },
+      { pctBps: 6000, deadline: 1_900_200_000 },
+    ],
+  };
 }
 
 describe('GET /campaigns', () => {
@@ -64,5 +89,74 @@ describe('GET /campaigns', () => {
   it('404s an unknown vault', async () => {
     const res = await request(app()).get('/campaigns/0x0000000000000000000000000000000000000000');
     expect(res.status).toBe(404);
+  });
+});
+
+describe('POST /campaigns (deploy bridge)', () => {
+  function freshApp() {
+    return createApp({ campaignStore: new InMemoryCampaignStore([]) });
+  }
+
+  it('persists a deployed campaign so its detail page then resolves', async () => {
+    const app = freshApp();
+    const body = validCampaign();
+    const created = await request(app)
+      .post('/campaigns')
+      .set('Authorization', authHeader())
+      .send(body);
+
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({ vault: body.vault, founder: FOUNDER, status: 'funding' });
+    expect(created.body.milestones).toHaveLength(2);
+
+    const detail = await request(app).get(`/campaigns/${body.vault}`);
+    expect(detail.status).toBe(200);
+    expect(detail.body.title).toBe('Solar microgrid');
+  });
+
+  it('takes the founder from the session, never the body', async () => {
+    const app = freshApp();
+    const res = await request(app)
+      .post('/campaigns')
+      .set('Authorization', authHeader())
+      .send({ ...validCampaign(), founder: OTHER });
+    expect(res.body.founder).toBe(FOUNDER);
+  });
+
+  it('never lets the client set verified / featured / demo', async () => {
+    const app = freshApp();
+    const res = await request(app)
+      .post('/campaigns')
+      .set('Authorization', authHeader())
+      .send({ ...validCampaign(), verified: true, featured: true, demo: true });
+    expect(res.body).toMatchObject({ verified: false, featured: false, demo: false });
+  });
+
+  it('is idempotent by vault and never clobbers the first writer', async () => {
+    const app = freshApp();
+    const body = validCampaign();
+    await request(app).post('/campaigns').set('Authorization', authHeader()).send(body);
+    const second = await request(app)
+      .post('/campaigns')
+      .set('Authorization', authHeader(OTHER))
+      .send({ ...body, title: 'Hijacked' });
+
+    expect(second.body.founder).toBe(FOUNDER);
+    expect(second.body.title).toBe('Solar microgrid');
+  });
+
+  it('rejects an unauthenticated create with 401', async () => {
+    const res = await request(freshApp()).post('/campaigns').send(validCampaign());
+    expect(res.status).toBe(401);
+  });
+
+  it('rejects milestones that do not sum to 100% with 400', async () => {
+    const bad = { ...validCampaign(), milestones: [{ pctBps: 5000, deadline: 1_900_100_000 }] };
+    const res = await request(freshApp())
+      .post('/campaigns')
+      .set('Authorization', authHeader())
+      .send(bad);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/sum to 100/);
   });
 });

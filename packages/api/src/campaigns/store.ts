@@ -46,6 +46,7 @@ export interface CampaignDetail extends CampaignSummary {
 export interface CampaignStore {
   list(filters: CampaignFilters): Promise<CampaignSummary[]>;
   getByVault(vault: string): Promise<CampaignDetail | null>;
+  create(input: CampaignInput): Promise<CampaignDetail>;
 }
 
 interface CampaignDoc extends Omit<CampaignSummary, 'milestoneCount'> {
@@ -53,6 +54,11 @@ interface CampaignDoc extends Omit<CampaignSummary, 'milestoneCount'> {
   governor: string;
   milestones: CampaignMilestone[];
 }
+
+/** The full doc a freshly-deployed campaign is persisted with (#27 bridge): the
+ *  founder's off-chain metadata plus the on-chain addresses read from the deploy
+ *  receipt. The indexer (#30) later reconciles the financial fields from events. */
+export type CampaignInput = CampaignDoc;
 
 function toDetail(c: CampaignDoc): CampaignDetail {
   return {
@@ -107,6 +113,15 @@ export class MongoCampaignStore implements CampaignStore {
     const doc = await CampaignModel.findOne({ vault: vault.toLowerCase() }).lean();
     return doc ? toDetail(doc as unknown as CampaignDoc) : null;
   }
+
+  // Idempotent by vault: a founder may submit twice (retry, double-tap), and we
+  // never clobber an existing doc — the indexer is the authority on conflicts.
+  async create(input: CampaignInput): Promise<CampaignDetail> {
+    const existing = await CampaignModel.findOne({ vault: input.vault.toLowerCase() }).lean();
+    if (existing) return toDetail(existing as unknown as CampaignDoc);
+    const doc = await CampaignModel.create(input);
+    return toDetail(doc.toObject() as unknown as CampaignDoc);
+  }
 }
 
 /** In-memory store for tests and the demo seed. */
@@ -128,5 +143,12 @@ export class InMemoryCampaignStore implements CampaignStore {
   async getByVault(vault: string): Promise<CampaignDetail | null> {
     const doc = this.docs.find((c) => c.vault.toLowerCase() === vault.toLowerCase());
     return doc ? toDetail(doc) : null;
+  }
+
+  async create(input: CampaignInput): Promise<CampaignDetail> {
+    const existing = this.docs.find((c) => c.vault.toLowerCase() === input.vault.toLowerCase());
+    if (existing) return toDetail(existing);
+    this.docs.push(input);
+    return toDetail(input);
   }
 }
