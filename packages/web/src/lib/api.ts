@@ -91,6 +91,9 @@ export const api = {
     create: (input: CampaignCreatePayload, token: string) =>
       apiFetch<CampaignDetail>('/campaigns', { method: 'POST', body: input, token }),
   },
+  tally: {
+    get: (campaignId: number) => apiFetch<CampaignSnapshot>(`/tally?campaignId=${campaignId}`),
+  },
   proposals: {
     list: (vault: string) => apiFetch<{ proposals: ProposalRecord[] }>(`/proposals?vault=${vault}`),
     create: (input: ProposalCreatePayload, token: string) =>
@@ -164,6 +167,26 @@ export interface CampaignCreatePayload {
   raiseTarget: string;
   fundingDeadline: number;
   milestones: { pctBps: number; deadline: number }[];
+}
+
+/** Token-weighted totals for one proposal (#30). Weights are decimal strings
+ *  (uint256), summed with BigInt server-side — never floats. */
+export interface Tally {
+  proposalId: string;
+  forVotes: string;
+  againstVotes: string;
+  abstainVotes: string;
+  voters: number;
+}
+
+/** The live snapshot the /tally route and the socket `campaign:sync` both send:
+ *  current tallies plus a freshness stamp for the "syncing" state. */
+export interface CampaignSnapshot {
+  campaignId: number;
+  tallies: Tally[];
+  analytics: unknown;
+  indexedAt: string | null;
+  serverTime: string;
 }
 
 /** A persisted milestone proposal (#29) — the discovery handle the ballot uses

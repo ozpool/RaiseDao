@@ -177,6 +177,20 @@ export const milestoneGovernorAbi = [
     outputs: [{ name: '', type: 'bool' }],
   },
   {
+    type: 'function',
+    name: 'quorum',
+    stateMutability: 'view',
+    inputs: [{ name: 'timepoint', type: 'uint256' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'proposalEta',
+    stateMutability: 'view',
+    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
     type: 'event',
     name: 'ProposalCreated',
     inputs: [

@@ -1,6 +1,7 @@
 'use client';
 
 import { useAccount } from 'wagmi';
+import type { Tally } from '@/lib/api';
 import { useProposals, proposalForMilestone } from '@/hooks/useProposals';
 import { ProposalBallot } from './ProposalBallot';
 import { ProposeButton } from './ProposeButton';
@@ -16,6 +17,8 @@ export function MilestoneGovernance({
   founder,
   milestoneIndex,
   evidenceCid,
+  tallies,
+  syncing,
 }: {
   campaignId: number;
   vault: string;
@@ -23,6 +26,8 @@ export function MilestoneGovernance({
   founder: string;
   milestoneIndex: number;
   evidenceCid: string;
+  tallies: Map<string, Tally>;
+  syncing: boolean;
 }) {
   const { address } = useAccount();
   const { data: proposals } = useProposals(vault);
@@ -30,7 +35,14 @@ export function MilestoneGovernance({
   const isFounder = Boolean(address && address.toLowerCase() === founder.toLowerCase());
 
   if (proposal) {
-    return <ProposalBallot governor={governor as `0x${string}`} proposalId={proposal.proposalId} />;
+    return (
+      <ProposalBallot
+        governor={governor as `0x${string}`}
+        proposalId={proposal.proposalId}
+        tally={tallies.get(proposal.proposalId)}
+        syncing={syncing}
+      />
+    );
   }
   if (isFounder) {
     return (
