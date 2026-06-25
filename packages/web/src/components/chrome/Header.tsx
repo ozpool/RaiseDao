@@ -14,8 +14,8 @@ export function Header() {
           <Link href="/" className="transition-colors hover:text-paper">
             Campaigns
           </Link>
-          <Link href="/" className="hidden transition-colors hover:text-paper sm:inline">
-            How it works
+          <Link href="/create" className="hidden transition-colors hover:text-paper sm:inline">
+            Create
           </Link>
           <Link href="/account" className="transition-colors hover:text-paper">
             Account

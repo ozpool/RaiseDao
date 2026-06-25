@@ -11,7 +11,7 @@ import { useAuthStore } from '@/stores/auth';
  *  wallet disconnects or switches accounts, the session is cleared. Renders
  *  nothing; mounted once inside the web3 providers. */
 export function AuthSync() {
-  const { address, isConnected } = useAccount();
+  const { address, status } = useAccount();
   const token = useAuthStore((s) => s.token);
   const session = useAuthStore((s) => s.session);
   const setStatus = useAuthStore((s) => s.setStatus);
@@ -31,9 +31,13 @@ export function AuthSync() {
 
   useEffect(() => {
     if (!session) return;
+    // Don't touch the session while wagmi is still (re)connecting on load —
+    // isConnected is briefly false then, and clearing here would log the user
+    // out on every refresh. Only react once the wallet has settled.
+    if (status === 'connecting' || status === 'reconnecting') return;
     const mismatch = address && address.toLowerCase() !== session.address.toLowerCase();
-    if (!isConnected || mismatch) clear();
-  }, [address, isConnected, session, clear]);
+    if (status === 'disconnected' || mismatch) clear();
+  }, [address, status, session, clear]);
 
   return null;
 }
