@@ -19,8 +19,10 @@ export function TrustCoreCanvas({ reducedMotion = false }: TrustCoreCanvasProps)
     <Canvas
       dpr={[1, 1.75]}
       frameloop={reducedMotion ? 'demand' : 'always'}
-      camera={{ position: [4.7, 3.7, 4.7], fov: 38 }}
-      gl={{ antialias: true, powerPreference: 'high-performance' }}
+      // Pulled back with headroom so the rotating cluster + its dust shell never
+      // touch the canvas edge — the core floats in the void, not cropped in a box.
+      camera={{ position: [7.2, 5.7, 7.2], fov: 36 }}
+      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       style={{ width: '100%', height: '100%', display: 'block' }}
       role="img"
       aria-label="The Vault core — a cluster of cubes representing escrowed funds"
@@ -42,7 +44,7 @@ export function TrustCoreCanvas({ reducedMotion = false }: TrustCoreCanvasProps)
       <EffectComposer>
         <Bloom
           mipmapBlur
-          intensity={0.9}
+          intensity={1.1}
           luminanceThreshold={1.0}
           luminanceSmoothing={0.3}
           radius={0.75}
