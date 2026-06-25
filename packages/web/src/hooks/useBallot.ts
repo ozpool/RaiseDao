@@ -28,6 +28,10 @@ export interface UseBallot {
   state: number | undefined;
   weight: bigint;
   hasVoted: boolean;
+  /** Quorum threshold (For-vote weight needed) at the proposal snapshot. */
+  quorum: bigint;
+  /** Unix seconds the timelock unlocks execution, or 0n if not yet queued. */
+  eta: bigint;
   vote: (support: number) => void;
   voting: boolean;
   done: boolean;
@@ -35,10 +39,12 @@ export interface UseBallot {
   error: Error | null;
 }
 
-/** Live ballot for one proposal: its state, the connected voter's snapshot
- *  weight, whether they've already voted, and the castVote action. All reads
- *  come straight from the governor — the persisted record only supplies the id. */
-export function useBallot(governor: `0x${string}`, proposalId: string): UseBallot {
+/** Live ballot for one proposal: its state, quorum threshold, the connected
+ *  voter's snapshot weight, whether they've voted, the timelock eta, and the
+ *  castVote action. All reads come straight from the governor — the persisted
+ *  record only supplies the id. `refreshKey` lets a parent re-pull the on-chain
+ *  reads when a live socket event lands (a new vote, a queue). */
+export function useBallot(governor: `0x${string}`, proposalId: string, refreshKey = 0): UseBallot {
   const { address } = useAccount();
   const id = BigInt(proposalId);
 
@@ -68,17 +74,33 @@ export function useBallot(governor: `0x${string}`, proposalId: string): UseBallo
     args: address ? [id, address] : undefined,
     query: { enabled: Boolean(address) },
   });
+  const quorumQ = useReadContract({
+    address: governor,
+    abi: milestoneGovernorAbi,
+    functionName: 'quorum',
+    args: snapshotQ.data !== undefined ? [snapshotQ.data] : undefined,
+    query: { enabled: snapshotQ.data !== undefined },
+  });
+  const etaQ = useReadContract({
+    address: governor,
+    abi: milestoneGovernorAbi,
+    functionName: 'proposalEta',
+    args: [id],
+  });
 
   const write = useWriteContract();
   const receipt = useWaitForTransactionReceipt({ hash: write.data });
 
-  // Once a vote confirms, refresh the bits that change: hasVoted and state.
+  // Refresh the on-chain reads that move when a vote confirms or a live socket
+  // event (refreshKey) lands: vote totals shift state/quorum-progress, a queue
+  // sets the eta. The snapshot/weight are fixed once set, so they aren't refetched.
   useEffect(() => {
-    if (receipt.isSuccess) {
+    if (receipt.isSuccess || refreshKey) {
       void votedQ.refetch();
       void stateQ.refetch();
+      void etaQ.refetch();
     }
-  }, [receipt.isSuccess, votedQ, stateQ]);
+  }, [receipt.isSuccess, refreshKey, votedQ, stateQ, etaQ]);
 
   const vote = (support: number) =>
     write.writeContract({
@@ -92,6 +114,8 @@ export function useBallot(governor: `0x${string}`, proposalId: string): UseBallo
     state: stateQ.data as number | undefined,
     weight: weightQ.data ?? 0n,
     hasVoted: votedQ.data ?? false,
+    quorum: quorumQ.data ?? 0n,
+    eta: etaQ.data ?? 0n,
     vote,
     voting: write.isPending || receipt.isLoading,
     done: receipt.isSuccess,

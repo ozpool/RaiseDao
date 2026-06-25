@@ -3,6 +3,7 @@
 import { useAccount } from 'wagmi';
 import type { CampaignMilestone } from '@/lib/api';
 import { useEvidence, groupByMilestone } from '@/hooks/useEvidence';
+import { useCampaignLive } from '@/hooks/useCampaignLive';
 import { EvidenceItem } from './EvidenceItem';
 import { EvidenceUpload } from './EvidenceUpload';
 import { MilestoneGovernance } from '../governance/MilestoneGovernance';
@@ -26,6 +27,7 @@ export function EvidenceSection({
 }) {
   const { address } = useAccount();
   const { data: records, isLoading } = useEvidence(campaignId);
+  const { tallies, syncing } = useCampaignLive(campaignId);
   const isFounder = Boolean(address && address.toLowerCase() === founder.toLowerCase());
   const byMilestone = groupByMilestone(records);
 
@@ -65,6 +67,8 @@ export function EvidenceSection({
                 founder={founder}
                 milestoneIndex={m.index}
                 evidenceCid={items[0]?.cid ?? ''}
+                tallies={tallies}
+                syncing={syncing}
               />
             </div>
           );

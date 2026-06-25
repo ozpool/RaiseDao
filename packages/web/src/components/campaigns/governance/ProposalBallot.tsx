@@ -4,6 +4,9 @@ import { formatUnits } from 'viem';
 import { useAccount } from 'wagmi';
 import { EXPLORER_URL } from '@/lib/config';
 import { useBallot, ProposalState, Support } from '@/hooks/useBallot';
+import type { Tally } from '@/lib/api';
+import { QuorumBar } from './QuorumBar';
+import { TimelockRing } from './TimelockRing';
 
 const STATE_LABEL: Record<number, string> = {
   [ProposalState.Pending]: 'Voting opens soon',
@@ -16,28 +19,35 @@ const STATE_LABEL: Record<number, string> = {
   [ProposalState.Executed]: 'Released',
 };
 
-/** The investor's voting ballot for one milestone proposal. Reads live state and
- *  the voter's snapshot weight from the governor; the For/Against buttons only
- *  light up while voting is Active, the voter has weight, and hasn't voted yet —
- *  the timing guards are the chain's, not ours. Live tallies arrive with #30. */
+/** The investor's voting ballot for one milestone proposal. The vote tally comes
+ *  live over the socket (`tally`); state, quorum, weight and the timelock eta are
+ *  read on-chain and re-pulled when a live event lands. The For/Against buttons
+ *  light up only while voting is Active, the voter has weight, and hasn't voted —
+ *  the timing guards are the chain's, not ours. `syncing` flags a stale indexer. */
 export function ProposalBallot({
   governor,
   proposalId,
+  tally,
+  syncing,
 }: {
   governor: `0x${string}`;
   proposalId: string;
+  tally?: Tally;
+  syncing: boolean;
 }) {
   const { isConnected } = useAccount();
-  const b = useBallot(governor, proposalId);
+  const b = useBallot(governor, proposalId, tally?.voters ?? 0);
   const isActive = b.state === ProposalState.Active;
   const hasWeight = b.weight > 0n;
   const canVote = isConnected && isActive && hasWeight && !b.hasVoted;
+  const forVotes = tally ? safeBig(tally.forVotes) : 0n;
 
   return (
     <div className="mt-3 rounded-xl border border-line bg-void/30 p-4">
       <div className="flex items-center justify-between gap-3">
         <span className="font-mono text-caption uppercase tracking-widest text-mist">
-          Release vote
+          Release vote{' '}
+          {syncing && <span className="ml-1 animate-pulse text-signal">· syncing</span>}
         </span>
         <span
           className={`font-mono text-caption uppercase tracking-widest ${
@@ -48,13 +58,17 @@ export function ProposalBallot({
         </span>
       </div>
 
-      <p className="mt-2 font-sans text-caption text-mist">
+      <QuorumBar forVotes={forVotes} quorum={b.quorum} />
+
+      <p className="mt-3 font-sans text-caption text-mist">
         Your voting weight:{' '}
         <span className="text-paper">
           {Number(formatUnits(b.weight, 18)).toLocaleString()} votes
         </span>
         {b.hasVoted && <span className="ml-2 text-data">· you voted</span>}
       </p>
+
+      <TimelockRing eta={b.eta} state={b.state} />
 
       {canVote && (
         <div className="mt-3 flex gap-3">
@@ -104,4 +118,13 @@ export function ProposalBallot({
       )}
     </div>
   );
+}
+
+/** A tally weight is a uint256 decimal string; never trust it blindly into BigInt. */
+function safeBig(value: string): bigint {
+  try {
+    return BigInt(value);
+  } catch {
+    return 0n;
+  }
 }
