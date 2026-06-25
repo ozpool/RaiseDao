@@ -65,6 +65,14 @@ async function apiFetch<T>(path: string, opts: RequestOptions = {}): Promise<T> 
 /** Typed client, grouped by domain. Public calls take no token; authenticated
  *  ones take the JWT the auth store holds. */
 export const api = {
+  dashboard: {
+    /** Founder's own campaigns: raise stats, milestone states, release log.
+     *  The API derives the caller's address from the bearer token. */
+    founder: (token: string) =>
+      apiFetch<{ campaigns: FounderRow[] }>('/dashboard/founder', { token }),
+    /** Investor's own contribution history, vote record, and claimable refunds. */
+    investor: (token: string) => apiFetch<InvestorDashboard>('/dashboard/investor', { token }),
+  },
   auth: {
     nonce: (address: string) =>
       apiFetch<{ nonce: string }>('/auth/nonce', { method: 'POST', body: { address } }),
@@ -264,4 +272,79 @@ export interface DraftRecord extends DraftPayload {
   id: string;
   founder: string;
   status: 'draft';
+}
+
+// ── Dashboard types ────────────────────────────────────────────────────────
+
+/** One milestone row inside a FounderRow — index + allocation + on-chain status. */
+export interface FounderMilestone {
+  index: number;
+  pctBps: number;
+  status: string;
+}
+
+/** One release event: the milestone that was paid out, the confirming block, and
+ *  the tx hash for the explorer link. */
+export interface FounderRelease {
+  index: number;
+  blockNumber: number;
+  txHash: string;
+}
+
+/** One row in the founder dashboard: a single campaign with aggregated financials,
+ *  per-milestone state, and a log of past fund releases. All token amounts are raw
+ *  uint256 strings — use formatUnits(BigInt(value), 6) to get USDC. */
+export interface FounderRow {
+  campaignId: number;
+  vault: string;
+  title: string;
+  status: string;
+  raiseTarget: string;
+  totalRaised: string;
+  contributorCount: number;
+  milestonesReleased: number;
+  milestonesFailed: number;
+  milestones: FounderMilestone[];
+  releases: FounderRelease[];
+}
+
+/** One contribution event in the investor dashboard. amount is USDC (6 dec);
+ *  votesMinted is the governance token the vault mints at contribution (18 dec). */
+export interface ContribRow {
+  campaignId: number;
+  vault: string;
+  title: string;
+  amount: string;
+  votesMinted: string;
+  blockNumber: number;
+  txHash: string;
+}
+
+/** One on-chain vote cast by the investor. support: 0 Against, 1 For, 2 Abstain.
+ *  weight is the governance token balance at vote time (18 dec). */
+export interface VoteRow {
+  campaignId: number;
+  vault: string;
+  title: string;
+  proposalId: string;
+  support: number;
+  weight: string;
+  blockNumber: number;
+  txHash: string;
+}
+
+/** A campaign where the investor is entitled to a refund (vault failed or was
+ *  never funded to target). The actual claim action is wired in issue #34. */
+export interface RefundRow {
+  campaignId: number;
+  vault: string;
+  title: string;
+  status: string;
+}
+
+/** Full response shape of GET /dashboard/investor. */
+export interface InvestorDashboard {
+  contributions: ContribRow[];
+  votes: VoteRow[];
+  refundable: RefundRow[];
 }
