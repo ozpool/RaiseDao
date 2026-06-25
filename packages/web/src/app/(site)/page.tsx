@@ -1,8 +1,14 @@
 import { Hero } from '@/components/landing/Hero';
+import { FundsLockedTicker } from '@/components/landing/FundsLockedTicker';
 
-/** Landing page. Server component shell; the Hero owns the client-only Vault.
- *  The live funds-locked ticker lands next (#21 Stage C) — until then no figure
- *  is shown as live, and the Vault preview is visibly tagged (UI.md §9). */
+/** Landing page. Server component shell; the Hero owns the client-only Vault and
+ *  the ticker owns its count-up. No figure is shown as live yet — the ticker is
+ *  badged demo until the indexer lands (#30), and the Vault preview is tagged. */
 export default function Home() {
-  return <Hero />;
+  return (
+    <>
+      <Hero />
+      <FundsLockedTicker />
+    </>
+  );
 }
