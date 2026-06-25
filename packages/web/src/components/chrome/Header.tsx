@@ -17,6 +17,9 @@ export function Header() {
           <Link href="/" className="hidden transition-colors hover:text-paper sm:inline">
             How it works
           </Link>
+          <Link href="/account" className="transition-colors hover:text-paper">
+            Account
+          </Link>
           <ConnectButton />
         </nav>
       </div>
