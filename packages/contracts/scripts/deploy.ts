@@ -7,7 +7,7 @@ import { join } from 'node:path';
  * and RaiseVault implementations, plus the timelock/governor deployer helpers).
  * Per-campaign contracts are cloned later by the factory at deploy() time.
  *
- *   pnpm -F @raisedao/contracts deploy        (uses the arbitrumSepolia network)
+ *   pnpm -F @raisedao/contracts deploy:factory   (uses the arbitrumSepolia network)
  *
  * Requires DEPLOYER_PRIVATE_KEY (a funded testnet key) and optionally RPC_URL in
  * packages/contracts/.env. The factory address it prints goes into the web and
