@@ -34,6 +34,17 @@ const campaignSchema = new Schema(
     milestones: { type: [milestoneSchema], default: [] },
     metadataCid: { type: String, default: null },
     createdAtBlock: { type: Number, default: 0 },
+    // Public display metadata for the browse grid (#25). Sourced off-chain (from
+    // the founder's draft / IPFS metadata); left blank on indexer-created docs
+    // until that pipeline fills them. raiseTarget is the soft goal, decimal USDC.
+    title: { type: String, default: '' },
+    summary: { type: String, default: '' },
+    city: { type: String, default: '' },
+    category: { type: String, default: '' },
+    raiseTarget: { type: String, default: '0' },
+    verified: { type: Boolean, default: false },
+    featured: { type: Boolean, default: false },
+    demo: { type: Boolean, default: false }, // seeded sample, badged in the UI
   },
   { timestamps: true },
 );

@@ -5,9 +5,11 @@ import { healthRouter } from './routes/health.js';
 import { authRouter } from './routes/auth.js';
 import { evidenceRouter, type EvidenceDeps } from './routes/evidence.js';
 import { draftsRouter } from './routes/drafts.js';
+import { campaignsRouter } from './routes/campaigns.js';
 import { MongoAuthStore, type AuthStore } from './auth/store.js';
 import { MongoEvidenceStore } from './evidence/store.js';
 import { MongoDraftStore, type DraftStore } from './drafts/store.js';
+import { MongoCampaignStore, type CampaignStore } from './campaigns/store.js';
 import { buildProviders } from './evidence/providers.js';
 import { config } from './config.js';
 import { notFound, errorHandler } from './middleware/error.js';
@@ -19,6 +21,8 @@ export interface AppDeps {
   evidence?: EvidenceDeps;
   /** Override the draft persistence (tests inject an in-memory store). */
   draftStore?: DraftStore;
+  /** Override the campaign read store (tests inject an in-memory store). */
+  campaignStore?: CampaignStore;
 }
 
 /** Build the Express app with no side effects (no listen, no DB), so tests can
@@ -31,6 +35,7 @@ export function createApp(deps: AppDeps = {}): Express {
     maxBytes: config.EVIDENCE_MAX_BYTES,
   };
   const draftStore = deps.draftStore ?? new MongoDraftStore();
+  const campaignStore = deps.campaignStore ?? new MongoCampaignStore();
   const app = express();
 
   app.use(pinoHttp({ logger }));
@@ -40,6 +45,7 @@ export function createApp(deps: AppDeps = {}): Express {
   app.use(authRouter(authStore));
   app.use(evidenceRouter(evidence));
   app.use(draftsRouter(draftStore));
+  app.use(campaignsRouter(campaignStore));
 
   app.use(notFound);
   app.use(errorHandler);

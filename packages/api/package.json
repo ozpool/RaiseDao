@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.json",
+    "seed:demo": "tsx src/scripts/seed-demo.ts",
     "test": "vitest run"
   },
   "dependencies": {
