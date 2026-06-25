@@ -88,5 +88,17 @@ export function evidenceRouter(deps: EvidenceDeps): Router {
     });
   });
 
+  // Public read: investors review a campaign's evidence by CID, no auth. The
+  // CIDs are world-readable on IPFS anyway, so gating the listing buys nothing.
+  router.get('/evidence', async (req: Request, res: Response) => {
+    const campaignId = Number(req.query.campaignId);
+    if (!Number.isInteger(campaignId) || campaignId < 0) {
+      res.status(400).json({ error: 'a non-negative campaignId is required' });
+      return;
+    }
+    const evidence = await deps.store.listByCampaign(campaignId);
+    res.status(200).json({ evidence });
+  });
+
   return router;
 }
