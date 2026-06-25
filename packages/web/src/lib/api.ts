@@ -80,6 +80,8 @@ export const api = {
       return apiFetch<{ campaigns: CampaignSummary[] }>(`/campaigns${suffix}`);
     },
     get: (vault: string) => apiFetch<CampaignDetail>(`/campaigns/${vault}`),
+    create: (input: CampaignCreatePayload, token: string) =>
+      apiFetch<CampaignDetail>('/campaigns', { method: 'POST', body: input, token }),
   },
 };
 
@@ -122,6 +124,22 @@ export interface CampaignDetail extends CampaignSummary {
   token: string;
   governor: string;
   milestones: CampaignMilestone[];
+}
+
+/** What the founder's client posts to persist a freshly-deployed campaign (#27):
+ *  the on-chain addresses from the deploy receipt plus the draft's display
+ *  metadata. The API sets founder from the session; the indexer (#30) later
+ *  reconciles the financials. */
+export interface CampaignCreatePayload {
+  campaignId: number;
+  vault: string;
+  token: string;
+  governor: string;
+  title: string;
+  summary: string;
+  raiseTarget: string;
+  fundingDeadline: number;
+  milestones: { pctBps: number; deadline: number }[];
 }
 
 /** The draft payload the create wizard sends (percent already converted to bps). */

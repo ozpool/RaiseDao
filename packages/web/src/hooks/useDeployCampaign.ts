@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { decodeEventLog } from 'viem';
 import { raiseFactoryAbi } from '@/lib/abi';
@@ -18,11 +18,16 @@ export interface DeployedCampaign {
 /** idle → signing (awaiting wallet) → confirming (tx mining) → confirmed; or error. */
 export type DeployPhase = 'idle' | 'signing' | 'confirming' | 'confirmed' | 'error';
 
+/** The exact factory params used for the in-flight deploy, kept so the campaign
+ *  can be persisted off-chain with the same funding/milestone deadlines. */
+export type DeployParams = ReturnType<typeof toCampaignParams>;
+
 export interface UseDeployCampaign {
   deploy: () => void;
   phase: DeployPhase;
   hash: `0x${string}` | undefined;
   result: DeployedCampaign | null;
+  params: DeployParams | null;
   error: Error | null;
   reset: () => void;
   configured: boolean;
@@ -41,13 +46,19 @@ export function useDeployCampaign(draft: DraftRecord): UseDeployCampaign {
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
 
+  // Stash the params used for this deploy so the campaign can be persisted with
+  // the same deadlines that went on-chain, not a recomputed (drifted) set.
+  const paramsRef = useRef<DeployParams | null>(null);
+
   const deploy = useCallback(() => {
     if (!FACTORY_ADDRESS || !address) return;
+    const params = toCampaignParams(draft, address);
+    paramsRef.current = params;
     writeContract({
       address: FACTORY_ADDRESS,
       abi: raiseFactoryAbi,
       functionName: 'deploy',
-      args: [toCampaignParams(draft, address)],
+      args: [params],
     });
   }, [address, draft, writeContract]);
 
@@ -78,5 +89,14 @@ export function useDeployCampaign(draft: DraftRecord): UseDeployCampaign {
           ? 'signing'
           : 'idle';
 
-  return { deploy, phase, hash, result, error, reset, configured: !!FACTORY_ADDRESS };
+  return {
+    deploy,
+    phase,
+    hash,
+    result,
+    params: paramsRef.current,
+    error,
+    reset,
+    configured: !!FACTORY_ADDRESS,
+  };
 }
