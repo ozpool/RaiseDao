@@ -41,3 +41,6 @@ graphify-out/
 
 # Playwright MCP verification artifacts (local only)
 .playwright-mcp/
+
+# Local dev-recovery artifacts
+.next.broken/

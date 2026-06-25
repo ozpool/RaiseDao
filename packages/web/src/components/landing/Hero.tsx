@@ -5,8 +5,8 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 // 3D never runs during SSR (avoids a hydration mismatch); it loads after paint.
 // The placeholder keeps the square's footprint so layout never shifts.
-const VaultCanvas = dynamic(
-  () => import('@/components/vault/VaultCanvas').then((m) => m.VaultCanvas),
+const TrustCoreCanvas = dynamic(
+  () => import('@/components/trustcore/TrustCoreCanvas').then((m) => m.TrustCoreCanvas),
   { ssr: false, loading: () => <div className="h-full w-full bg-void" aria-hidden /> },
 );
 
@@ -18,10 +18,16 @@ export function Hero() {
 
   return (
     <section className="relative overflow-hidden">
+      {/* Atmospheric depth — a soft cyan haze seated under the Vault (right side,
+          not a centred blob), plus a magenta counter-tone low-left. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60rem_45rem_at_78%_55%,rgba(63,233,224,0.10),transparent_60%),radial-gradient(50rem_40rem_at_8%_90%,rgba(200,99,240,0.07),transparent_60%)]"
+      />
       {/* Wordmark band — full-bleed, the type IS the composition. */}
       <div className="px-6 pt-12 lg:pt-20">
         <p className="font-mono text-caption uppercase tracking-[0.3em] text-mist">
-          Milestone-gated crowdfunding // Arbitrum Sepolia
+          Milestone-gated crowdfunding <span className="text-data">//</span> Arbitrum Sepolia
         </p>
         <h1 className="mt-5 select-none font-display text-mega font-semibold leading-[0.9] tracking-tighter text-paper">
           RAISEDAO
@@ -41,14 +47,14 @@ export function Hero() {
             vote each milestone through. Fail a milestone, and the rest refunds pro rata.
           </p>
           <div className="mt-10 flex items-center gap-3 font-mono text-caption uppercase tracking-widest text-mist">
-            <span className="h-px w-10 bg-line" />
+            <span className="h-px w-10 bg-data/70" />
             Scroll to see it work
           </div>
         </div>
 
         <div className="mx-auto w-full min-w-0 max-w-[58vh] lg:justify-self-end">
           <div className="relative aspect-square w-full">
-            <VaultCanvas fillLevel={0.62} state="live" lod="full" mock reducedMotion={reduced} />
+            <TrustCoreCanvas reducedMotion={reduced} />
           </div>
           <p className="mt-4 text-center font-mono text-caption uppercase tracking-widest text-mist lg:text-right">
             Vault preview · not live data
