@@ -3,8 +3,8 @@
 import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { MeshTransmissionMaterial } from '@react-three/drei';
-import type { Mesh } from 'three';
-import { buildBrilliant } from './brilliant-cut';
+import { EdgesGeometry, type Mesh } from 'three';
+import { buildGem } from './gem-geometry';
 
 export interface VaultGemProps {
   reducedMotion?: boolean;
@@ -20,7 +20,8 @@ export interface VaultGemProps {
 export function VaultGem({ reducedMotion = false, quality = 'high' }: VaultGemProps) {
   const shell = useRef<Mesh>(null);
   const core = useRef<Mesh>(null);
-  const geo = useMemo(() => buildBrilliant(16), []);
+  const geo = useMemo(() => buildGem(8, 0.95, 1.35), []); // taller, elegant ◇
+  const edges = useMemo(() => new EdgesGeometry(geo, 1), [geo]);
   const low = quality === 'low';
 
   useFrame((state, delta) => {
@@ -30,34 +31,48 @@ export function VaultGem({ reducedMotion = false, quality = 'high' }: VaultGemPr
     if (shell.current) shell.current.rotation.y += dt * 0.25;
     if (core.current) {
       core.current.rotation.y -= dt * 0.18;
-      core.current.scale.setScalar(0.55 + Math.sin(t * 1.2) * 0.02); // a slow heartbeat
+      core.current.scale.setScalar(0.3 + Math.sin(t * 1.2) * 0.015); // a slow heartbeat
     }
   });
 
   return (
     <group>
-      {/* Trapped inner light — the escrowed funds, glowing cyan through the glass. */}
-      <mesh ref={core} geometry={geo} scale={0.55}>
+      {/* A small focal glow at the heart — the escrowed funds, seen through the
+          glass. Kept small so the refraction reads, not a solid cyan fill. */}
+      <mesh ref={core} geometry={geo} scale={0.3}>
         <meshBasicMaterial color="#3fe9e0" toneMapped={false} />
       </mesh>
-      {/* Refractive diamond shell. */}
+      {/* Refractive diamond shell — backside on for truer double-refraction, the
+          chromatic aberration dialled back, and a film of iridescence for the
+          holographic rainbow that plays across the facets. */}
       <mesh ref={shell} geometry={geo}>
         <MeshTransmissionMaterial
+          backside
           transmission={1}
-          thickness={1.6}
-          roughness={0.04}
+          thickness={2}
+          roughness={0.02}
           ior={2.42}
-          chromaticAberration={0.55}
-          anisotropicBlur={0.3}
-          distortion={0.12}
-          distortionScale={0.3}
-          temporalDistortion={0.08}
-          color="#dff4ff"
-          samples={low ? 4 : 8}
-          resolution={low ? 256 : 512}
+          chromaticAberration={0.06}
+          anisotropicBlur={0.1}
+          distortion={0.02}
+          distortionScale={0.2}
+          temporalDistortion={0.04}
+          color="#eaf6ff"
+          attenuationColor="#bfeaff"
+          attenuationDistance={2.5}
+          iridescence={1}
+          iridescenceIOR={1.32}
+          iridescenceThicknessRange={[120, 420]}
+          samples={low ? 4 : 10}
+          resolution={low ? 256 : 768}
           toneMapped={false}
         />
       </mesh>
+      {/* Glowing facet edges — bloom turns these thin emissive lines into the neon
+          outline that makes the gem read as lit, not just transparent. */}
+      <lineSegments geometry={edges} scale={1.004}>
+        <lineBasicMaterial color="#7ff4ec" toneMapped={false} />
+      </lineSegments>
     </group>
   );
 }
