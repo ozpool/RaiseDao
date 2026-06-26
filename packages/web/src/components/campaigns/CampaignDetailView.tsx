@@ -58,6 +58,7 @@ function AddressRow({ label, value }: { label: string; value: string }) {
           href={`${EXPLORER_URL}/address/${value}`}
           target="_blank"
           rel="noreferrer"
+          aria-label={`View ${label} contract on Arbiscan`}
           className="font-mono text-caption uppercase text-data hover:opacity-80"
         >
           ↗

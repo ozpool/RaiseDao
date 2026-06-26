@@ -62,6 +62,7 @@ export function AdminCampaignRow({ c }: { c: AdminCampaign }) {
           <input
             value={reason}
             onChange={(e) => setReason(e.target.value)}
+            aria-label="Reason for hiding this campaign"
             placeholder="Reason (logged)"
             className="flex-1 rounded-lg border border-line bg-void/40 px-3 py-1.5 font-sans text-caption text-paper outline-none transition-colors focus:border-data"
           />
