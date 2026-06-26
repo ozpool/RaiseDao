@@ -7,6 +7,7 @@ import type { CampaignMilestone } from '@/lib/api';
 import { FundingBar } from './FundingBar';
 import { ContributePanel } from './ContributePanel';
 import { ActivateVoting } from './governance/ActivateVoting';
+import { RefundPanel } from './RefundPanel';
 import { EvidenceSection } from './evidence/EvidenceSection';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -141,6 +142,7 @@ export function CampaignDetailView({ vault }: { vault: string }) {
         </div>
         <ContributePanel vault={c.vault as `0x${string}`} status={c.status} demo={c.demo} />
         {!c.demo && <ActivateVoting token={c.token as `0x${string}`} />}
+        {!c.demo && <RefundPanel vault={c.vault as `0x${string}`} milestones={c.milestones} />}
       </aside>
     </div>
   );
