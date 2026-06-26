@@ -28,10 +28,17 @@ const schema = z
       .default('false')
       .transform((v) => v === 'true'),
     RPC_URL: z.string().url().default('https://sepolia-rollup.arbitrum.io/rpc'),
+    // The indexer's eth_getLogs can need wider block ranges than a free-tier RPC
+    // allows (e.g. Alchemy caps it at 10 blocks). Point this at a permissive
+    // endpoint (the public Arbitrum RPC handles wide ranges); falls back to
+    // RPC_URL when blank.
+    INDEXER_RPC_URL: z.string().default(''),
     FACTORY_ADDRESS: z.string().default(''),
     INDEXER_START_BLOCK: z.coerce.number().int().nonnegative().default(0),
     INDEXER_CONFIRMATIONS: z.coerce.number().int().nonnegative().default(5),
     INDEXER_POLL_MS: z.coerce.number().int().positive().default(12000),
+    // Max blocks per eth_getLogs window; set at/under your RPC's cap.
+    INDEXER_MAX_RANGE: z.coerce.number().int().positive().default(10000),
     // IPFS evidence pinning (#15). Missing tokens disable that provider; the
     // route fails loudly only when no provider can pin.
     PINATA_JWT: z.string().default(''),
