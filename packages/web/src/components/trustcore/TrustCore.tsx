@@ -7,6 +7,7 @@ import {
   InstancedBufferAttribute,
   Object3D,
   Plane,
+  Sphere,
   Vector3,
   type InstancedMesh,
 } from 'three';
@@ -15,11 +16,16 @@ import { patchEmissive } from './core-material';
 import { useCorePointer } from './useCorePointer';
 
 // Geometry is a unit box; real edge length is set per-instance from data.scales.
-const SCATTER_RADIUS = 1.35; // cursor influence radius, in local units
-const SCATTER_PUSH = 0.85; // furthest a cube flies at the cursor's centre
+const SCATTER_RADIUS = 1.7; // cursor influence radius — wider so more motes react
+const SCATTER_PUSH = 0.9; // base push at the cursor's centre (scaled per cube below)
 const SPRING_TAU = 0.13; // spring time constant (s) for push-out / return
 const IDLE_AMP = 0.02; // amplitude of the per-cube alive-at-rest drift
-const PARALLAX = 0.28; // how far the whole core leans with the cursor
+const PARALLAX = 0.1; // subtle whole-core lean — only while the cursor is on the core
+// Smaller cubes (the dust shell) scatter far; the structural body barely shifts,
+// so the interaction reads as kicking up sparks, not shoving the whole block.
+const PUSH_REF_SIZE = 0.18; // scale at which the push multiplier is ~1
+const PUSH_MIN = 0.35; // floor for big structural cubes (move little)
+const PUSH_MAX = 4; // ceiling for the tiniest motes (fly far)
 
 export interface TrustCoreProps {
   reducedMotion?: boolean;
@@ -39,7 +45,13 @@ export function TrustCore({ reducedMotion = false, quality = 'high' }: TrustCore
   // Live per-instance positions (spring toward the scatter target each frame).
   const cur = useMemo(() => new Float32Array(data.positions), [data]);
   const scratch = useMemo(
-    () => ({ plane: new Plane(), cursor: new Vector3(), n: new Vector3(), d: new Vector3() }),
+    () => ({
+      plane: new Plane(),
+      cursor: new Vector3(),
+      n: new Vector3(),
+      d: new Vector3(),
+      sphere: new Sphere(),
+    }),
     [],
   );
 
@@ -68,20 +80,29 @@ export function TrustCore({ reducedMotion = false, quality = 'high' }: TrustCore
     const hovering = ptr.hovering.current;
     const ease = 1 - Math.exp(-delta / 0.25);
 
-    // Parallax: the whole core leans toward the cursor, returning to centre on leave.
-    mesh.position.x += ((hovering ? ptr.pointer.current.x * PARALLAX : 0) - mesh.position.x) * ease;
+    // "On the core" = the pointer ray actually passes through the cluster's
+    // bounding sphere, not merely somewhere in the canvas. Based on the core
+    // centre + radius, so it's stable regardless of this frame's spin/scatter.
+    let onCore = false;
+    if (hovering) {
+      state.raycaster.setFromCamera(ptr.pointer.current, state.camera);
+      scratch.sphere.set(mesh.position, data.radius * 1.12); // margin covers the dust shell
+      onCore = state.raycaster.ray.intersectsSphere(scratch.sphere);
+    }
+
+    // Parallax: a subtle lean toward the cursor, only while actually on the core.
+    mesh.position.x += ((onCore ? ptr.pointer.current.x * PARALLAX : 0) - mesh.position.x) * ease;
     mesh.position.y +=
-      ((hovering ? ptr.pointer.current.y * PARALLAX * 0.7 : 0) - mesh.position.y) * ease;
+      ((onCore ? ptr.pointer.current.y * PARALLAX * 0.7 : 0) - mesh.position.y) * ease;
     mesh.rotation.y = t * 0.15; // slow turntable
     mesh.scale.setScalar(1 + Math.sin(t * 0.8) * 0.02); // breathing
     mesh.updateMatrixWorld();
 
-    // Cursor in the cluster's local frame (matches the base positions).
+    // Cursor in the cluster's local frame — only resolved when on the core.
     let active = false;
-    if (hovering) {
+    if (onCore) {
       state.camera.getWorldDirection(scratch.n);
       scratch.plane.setFromNormalAndCoplanarPoint(scratch.n, mesh.position);
-      state.raycaster.setFromCamera(ptr.pointer.current, state.camera);
       if (state.raycaster.ray.intersectPlane(scratch.plane, scratch.cursor)) {
         mesh.worldToLocal(scratch.cursor);
         active = true;
@@ -104,7 +125,10 @@ export function TrustCore({ reducedMotion = false, quality = 'high' }: TrustCore
         if (dist < SCATTER_RADIUS) {
           let f = 1 - dist / SCATTER_RADIUS;
           f *= f; // quadratic falloff — nearest fly furthest
-          const mag = (SCATTER_PUSH * f) / (dist || 1e-3);
+          const size = data.scales[i] ?? 0.2;
+          // Tiny motes fly far; the structural body barely shifts.
+          const boost = Math.min(PUSH_MAX, Math.max(PUSH_MIN, (PUSH_REF_SIZE / size) ** 1.6));
+          const mag = (SCATTER_PUSH * f * boost) / (dist || 1e-3);
           tx += d.x * mag;
           ty += d.y * mag;
           tz += d.z * mag;
