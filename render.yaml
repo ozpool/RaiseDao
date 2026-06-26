@@ -1,0 +1,75 @@
+# Render Blueprint for the RaiseDAO API (Express + the in-process chain indexer).
+# The indexer is NOT a separate worker — it runs inside this one web service
+# (INDEXER_ENABLED=true), a deliberate free-tier choice. UptimeRobot pings
+# /health every ~10 min to stop Render's free instance from sleeping.
+#
+# The web (Next.js) deploys separately on Vercel — see README "Deployment".
+# `sync: false` vars are placeholders you set once in the Render dashboard.
+
+services:
+  - type: web
+    name: raisedao-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: .
+    # pnpm is provided via corepack; only the api workspace is built.
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm -F @raisedao/api build
+    startCommand: pnpm -F @raisedao/api start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Core
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: LOG_LEVEL
+        value: info
+      - key: MONGODB_URI # MongoDB Atlas connection string
+        sync: false
+      # Auth (JWT + SIWE)
+      - key: JWT_SECRET # strong random secret (required in production)
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: SIWE_DOMAIN # e.g. raisedao.vercel.app
+        sync: false
+      - key: SIWE_URI # e.g. https://raisedao.vercel.app
+        sync: false
+      - key: SIWE_CHAIN_ID
+        value: 421614
+      - key: ADMIN_ADDRESSES # comma-separated admin wallet addresses
+        sync: false
+      # Indexer (in-process on this same service)
+      - key: INDEXER_ENABLED
+        value: true
+      - key: RPC_URL
+        value: https://sepolia-rollup.arbitrum.io/rpc
+      - key: FACTORY_ADDRESS # deployed RaiseFactory address
+        sync: false
+      - key: INDEXER_START_BLOCK # factory deploy block (avoids scanning from 0)
+        sync: false
+      - key: INDEXER_CONFIRMATIONS
+        value: 5
+      - key: INDEXER_POLL_MS
+        value: 12000
+      # IPFS evidence pinning (provide at least one)
+      - key: PINATA_JWT
+        sync: false
+      - key: WEB3_STORAGE_TOKEN
+        sync: false
+      - key: EVIDENCE_MAX_BYTES
+        value: 10485760
+      # Realtime (Socket.IO). REDIS_URL optional — only adds the multi-instance adapter.
+      - key: REALTIME_ENABLED
+        value: true
+      - key: REDIS_URL # OPTIONAL Upstash URL
+        sync: false
+      - key: APP_URL # web origin, e.g. https://raisedao.vercel.app
+        sync: false
+      # Email (Resend). Leave blank to disable sending.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: RaiseDAO <notifications@raisedao.app>

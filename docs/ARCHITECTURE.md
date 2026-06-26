@@ -209,7 +209,7 @@ service token.
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `contracts` | `RPC_URL`, `DEPLOYER_PRIVATE_KEY`, `ARBISCAN_API_KEY`                                                                        |
 | `api`       | `MONGODB_URI`, `REDIS_URL`, `JWT_SECRET`, `RPC_URL`, `FACTORY_ADDRESS`, `PINATA_JWT`, `WEB3_STORAGE_TOKEN`, `RESEND_API_KEY` |
-| `web`       | `NEXT_PUBLIC_RPC_URL`, `NEXT_PUBLIC_FACTORY_ADDR`, `NEXT_PUBLIC_USDC_ADDR`, `NEXT_PUBLIC_SOCKET_URL`                         |
+| `web`       | `NEXT_PUBLIC_API_URL` (also the Socket.IO origin), `NEXT_PUBLIC_FACTORY_ADDRESS`, `NEXT_PUBLIC_IPFS_GATEWAY`                 |
 
 ## 13. Testing strategy
 
