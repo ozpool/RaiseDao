@@ -10,13 +10,13 @@ import { JourneyCaptions } from './JourneyCaptions';
 import { JourneyRail } from './JourneyRail';
 
 // 3D loads after paint, never during SSR (R3F + WebGL are client-only).
-const TrustCoreCanvas = dynamic(
-  () => import('@/components/trustcore/TrustCoreCanvas').then((m) => m.TrustCoreCanvas),
+const VaultGemCanvas = dynamic(
+  () => import('@/components/journey/VaultGemCanvas').then((m) => m.VaultGemCanvas),
   { ssr: false, loading: () => <div className="h-full w-full bg-void" aria-hidden /> },
 );
 
-// 6 beats × ~100vh of scroll each = a comfortable, unhurried read of the ritual.
-const SECTION_HEIGHT = '600vh';
+// 6 beats × ~135vh of scroll each = an unhurried, smooth read of the ritual.
+const SECTION_HEIGHT = '800vh';
 
 /** The cinematic finale: one pinned Trust Core, the six-beat story scrubbed by
  *  scroll. Stage 1 wires the pin, the beat captions and the progress rail; the
@@ -57,9 +57,9 @@ export function JourneySection() {
   return (
     <section ref={sectionRef} style={{ height: SECTION_HEIGHT }} aria-label="How the vault works">
       <div className="sticky top-0 h-screen overflow-hidden bg-void">
-        {/* The pinned core, full-bleed behind the editorial layer. */}
+        {/* The pinned diamond vault, full-bleed behind the editorial layer. */}
         <div className="absolute inset-0">
-          <TrustCoreCanvas reducedMotion={false} />
+          <VaultGemCanvas reducedMotion={false} />
         </div>
         {/* Scrim so the lower-left captions stay legible over the core. */}
         <div
