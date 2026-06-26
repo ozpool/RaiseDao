@@ -108,6 +108,35 @@ export const raiseVaultAbi = [
   },
 ] as const;
 
+/** Minimal GovToken ABI — the soulbound ERC20Votes reads/writes the activation
+ *  step needs. ERC20Votes only counts a holder's balance toward `getVotes` once
+ *  they have a delegate set; minting alone leaves voting power dormant. So a
+ *  contributor must `delegate(self)` once to activate. `delegates` tells us
+ *  whether that's been done, `balanceOf` whether they hold any votes to activate. */
+export const govTokenAbi = [
+  {
+    type: 'function',
+    name: 'delegate',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'delegatee', type: 'address' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'delegates',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'balanceOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+] as const;
+
 /** Minimal MilestoneGovernor ABI — the propose/vote surface plus the reads the
  *  ballot needs (state, snapshot, per-voter weight, hasVoted). OZ Governor v5.
  *  Live For/Against tallies are deliberately absent here; they arrive with the
