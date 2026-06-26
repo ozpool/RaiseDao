@@ -53,6 +53,7 @@ interface CampaignDoc extends Omit<CampaignSummary, 'milestoneCount'> {
   token: string;
   governor: string;
   milestones: CampaignMilestone[];
+  hidden?: boolean; // admin-moderated out of public browse (#35); never in summaries
 }
 
 /** The full doc a freshly-deployed campaign is persisted with (#27 bridge): the
@@ -96,7 +97,7 @@ function toSummary(c: CampaignDoc): CampaignSummary {
 
 export class MongoCampaignStore implements CampaignStore {
   async list(f: CampaignFilters): Promise<CampaignSummary[]> {
-    const query: Record<string, unknown> = {};
+    const query: Record<string, unknown> = { hidden: { $ne: true } };
     if (f.city) query.city = f.city;
     if (f.category) query.category = f.category;
     if (f.verified !== undefined) query.verified = f.verified;
@@ -131,6 +132,7 @@ export class InMemoryCampaignStore implements CampaignStore {
   async list(f: CampaignFilters): Promise<CampaignSummary[]> {
     const rx = f.q ? new RegExp(f.q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : null;
     return this.docs
+      .filter((c) => !c.hidden)
       .filter((c) => (f.city ? c.city === f.city : true))
       .filter((c) => (f.category ? c.category === f.category : true))
       .filter((c) => (f.verified !== undefined ? c.verified === f.verified : true))
