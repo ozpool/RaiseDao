@@ -1,12 +1,66 @@
-/** Site footer chrome. The oversized wordmark bookends the page (the hero opens
- *  with it, the footer closes on it); mono fact columns above, zero animation
- *  (docs/UI.md §7). */
-const COLUMNS: { title: string; items: string[] }[] = [
-  { title: 'Product', items: ['Campaigns', 'How it works', 'The Vault'] },
-  { title: 'Network', items: ['Arbitrum Sepolia', 'USDC escrow', 'Contracts'] },
-  { title: 'Resources', items: ['Docs', 'GitHub', 'Architecture'] },
-  { title: 'Status', items: ['Testnet', 'Not audited', 'Portfolio build'] },
+import Link from 'next/link';
+import { EXPLORER_URL, USDC_ADDRESS, FACTORY_ADDRESS } from '@/lib/config';
+
+/** Site footer chrome (docs/UI.md §7): mono fact columns, real outbound links to
+ *  the on-chain contracts on Arbiscan and the source on GitHub, the wordmark as a
+ *  closing bookend. Zero animation — this is the trust anchor, it states facts. */
+const REPO = 'https://github.com/ozpool/RaiseDao';
+
+interface FooterLink {
+  label: string;
+  href: string;
+  external?: boolean;
+}
+
+const factoryHref = FACTORY_ADDRESS ? `${EXPLORER_URL}/address/${FACTORY_ADDRESS}` : null;
+
+const COLUMNS: { title: string; links: FooterLink[] }[] = [
+  {
+    title: 'Product',
+    links: [
+      { label: 'Campaigns', href: '/campaigns' },
+      { label: 'Create a raise', href: '/create' },
+      { label: 'Dashboard', href: '/dashboard' },
+    ],
+  },
+  {
+    title: 'Contracts',
+    links: [
+      ...(factoryHref ? [{ label: 'RaiseFactory ↗', href: factoryHref, external: true }] : []),
+      { label: 'USDC escrow ↗', href: `${EXPLORER_URL}/address/${USDC_ADDRESS}`, external: true },
+      { label: 'Arbitrum Sepolia ↗', href: EXPLORER_URL, external: true },
+    ],
+  },
+  {
+    title: 'Resources',
+    links: [
+      { label: 'GitHub ↗', href: REPO, external: true },
+      { label: 'Architecture ↗', href: `${REPO}/blob/main/docs/ARCHITECTURE.md`, external: true },
+      { label: 'Demo walkthrough ↗', href: `${REPO}/blob/main/docs/DEMO.md`, external: true },
+    ],
+  },
+  {
+    title: 'Status',
+    links: [
+      { label: 'Testnet', href: '/campaigns' },
+      { label: 'Not audited', href: `${REPO}/blob/main/README.md`, external: true },
+      { label: 'Portfolio build', href: REPO, external: true },
+    ],
+  },
 ];
+
+function FootLink({ link }: { link: FooterLink }) {
+  const className = 'transition-colors hover:text-data';
+  return link.external ? (
+    <a href={link.href} target="_blank" rel="noreferrer" className={className}>
+      {link.label}
+    </a>
+  ) : (
+    <Link href={link.href} className={className}>
+      {link.label}
+    </Link>
+  );
+}
 
 export function Footer() {
   return (
@@ -18,8 +72,10 @@ export function Footer() {
               {col.title}
             </p>
             <ul className="mt-4 space-y-2 font-sans text-small text-paper">
-              {col.items.map((item) => (
-                <li key={item}>{item}</li>
+              {col.links.map((link) => (
+                <li key={link.label}>
+                  <FootLink link={link} />
+                </li>
               ))}
             </ul>
           </div>

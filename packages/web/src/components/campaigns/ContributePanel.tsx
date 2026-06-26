@@ -90,6 +90,7 @@ export function ContributePanel({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           inputMode="decimal"
+          aria-label="Contribution amount in USDC"
           placeholder="0.00"
           className="w-full rounded-lg border border-line bg-void/40 px-3 py-2 pr-14 font-mono text-small text-paper outline-none transition-colors focus:border-data"
         />

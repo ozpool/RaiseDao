@@ -7,8 +7,13 @@ import { Footer } from '@/components/chrome/Footer';
 export default function SiteLayout({ children }: { children: ReactNode }) {
   return (
     <>
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
       <Header />
-      <main>{children}</main>
+      <main id="main" tabIndex={-1}>
+        {children}
+      </main>
       <Footer />
     </>
   );
