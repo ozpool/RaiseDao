@@ -26,12 +26,14 @@ export function startIndexer(sink?: EventSink): void {
     return;
   }
 
-  const source = new EthersLogSource(new JsonRpcProvider(config.RPC_URL));
+  const rpcUrl = config.INDEXER_RPC_URL || config.RPC_URL;
+  const source = new EthersLogSource(new JsonRpcProvider(rpcUrl));
   const store = new MongoIndexerStore();
   const opts: EngineOptions = {
     factoryAddress: config.FACTORY_ADDRESS,
     confirmations: config.INDEXER_CONFIRMATIONS,
     startBlock: config.INDEXER_START_BLOCK,
+    maxRange: config.INDEXER_MAX_RANGE,
   };
 
   const tick = async (): Promise<void> => {

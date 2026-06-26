@@ -46,6 +46,8 @@ services:
         value: true
       - key: RPC_URL
         value: https://sepolia-rollup.arbitrum.io/rpc
+      - key: INDEXER_RPC_URL # OPTIONAL wide-range RPC for eth_getLogs; falls back to RPC_URL
+        sync: false
       - key: FACTORY_ADDRESS # deployed RaiseFactory address
         sync: false
       - key: INDEXER_START_BLOCK # factory deploy block (avoids scanning from 0)
@@ -54,6 +56,8 @@ services:
         value: 5
       - key: INDEXER_POLL_MS
         value: 12000
+      - key: INDEXER_MAX_RANGE # max blocks per eth_getLogs window; set <= the RPC's cap
+        value: 10000
       # IPFS evidence pinning (provide at least one)
       - key: PINATA_JWT
         sync: false

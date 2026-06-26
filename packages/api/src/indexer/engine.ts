@@ -7,6 +7,10 @@ export interface EngineOptions {
   factoryAddress: string;
   confirmations: number;
   startBlock: number;
+  /** Max blocks per eth_getLogs call. Caps the span so a backlog (or a
+   *  rate-limited RPC, e.g. Alchemy's free-tier 10-block limit) is walked in
+   *  bounded windows rather than one giant request. Defaults to unbounded. */
+  maxRange?: number;
 }
 
 /** Best-effort consumer of newly-applied events (realtime fanout, email). Called
@@ -41,10 +45,35 @@ export async function processRange(
   const safe = head - opts.confirmations;
 
   const checkpoint = (await store.getCheckpoint()) ?? opts.startBlock - 1;
-  const from = checkpoint + 1;
-  if (safe < from) return { from, to: checkpoint, processed: 0 };
-  const to = safe;
+  const startFrom = checkpoint + 1;
+  if (safe < startFrom) return { from: startFrom, to: checkpoint, processed: 0 };
 
+  // Walk [startFrom, safe] in windows of at most maxRange blocks. The checkpoint
+  // advances per window, so a crash mid-backfill resumes cleanly and a
+  // range-limited RPC is never asked for more than it allows.
+  const maxRange = opts.maxRange && opts.maxRange > 0 ? opts.maxRange : Number.MAX_SAFE_INTEGER;
+  let processed = 0;
+  for (let from = startFrom; from <= safe; ) {
+    const to = Math.min(safe, from + maxRange - 1);
+    processed += await processChunk(source, store, opts, sink, from, to);
+    await store.setCheckpoint(to);
+    from = to + 1;
+  }
+
+  return { from: startFrom, to: safe, processed };
+}
+
+/** Index one window [from, to]: discover campaigns from the factory first, then
+ *  capture campaign-contract events (including any campaign born in this window).
+ *  Returns how many events were newly applied. */
+async function processChunk(
+  source: LogSource,
+  store: IndexerStore,
+  opts: EngineOptions,
+  sink: EventSink | undefined,
+  from: number,
+  to: number,
+): Promise<number> {
   const factoryAddress = opts.factoryAddress.toLowerCase();
   let processed = 0;
 
@@ -74,8 +103,7 @@ export async function processRange(
     }
   }
 
-  await store.setCheckpoint(to);
-  return { from, to, processed };
+  return processed;
 }
 
 async function emit(sink: EventSink | undefined, event: DecodedEvent): Promise<void> {

@@ -14,6 +14,7 @@ const INVESTOR = '0x00000000000000000000000000000000000000c3';
 const OPTS: EngineOptions = { factoryAddress: FACTORY, confirmations: 5, startBlock: 0 };
 
 class FakeSource implements LogSource {
+  readonly calls: LogFilter[] = [];
   constructor(
     public head: number,
     private readonly logs: LogRecord[],
@@ -22,6 +23,7 @@ class FakeSource implements LogSource {
     return this.head;
   }
   async getLogs(f: LogFilter): Promise<LogRecord[]> {
+    this.calls.push(f);
     const set = new Set(f.address.map((a) => a.toLowerCase()));
     return this.logs.filter(
       (l) => l.blockNumber >= f.fromBlock && l.blockNumber <= f.toBlock && set.has(l.address),
@@ -102,6 +104,23 @@ describe('processRange', () => {
     expect(replay.processed).toBe(0); // nothing new applied
     expect(store.events.length).toBe(eventsAfterFirst);
     expect(store.contributions.get(1)).toBe(1); // not double-counted
+  });
+
+  it('walks a long backlog in maxRange-capped windows, never exceeding the cap', async () => {
+    const store = new InMemoryIndexerStore();
+    // Deploy at block 3, a contribution at 47 — spanning more than one window.
+    const source = new FakeSource(55, [campaignDeployed(3, 0), contributed(47, 0)]);
+
+    const result = await processRange(source, store, { ...OPTS, maxRange: 10 });
+
+    // head 55 - 5 = safe 50; from 0..50 in windows of 10 → no getLogs spans >10 blocks
+    expect(result.to).toBe(50);
+    for (const c of source.calls) {
+      expect(c.toBlock - c.fromBlock + 1).toBeLessThanOrEqual(10);
+    }
+    // both events still captured despite the windowing
+    expect(store.events.map((e) => e.type)).toEqual(['CampaignDeployed', 'Contributed']);
+    expect(store.checkpoint).toBe(50);
   });
 
   it('does nothing when no blocks are final yet', async () => {
