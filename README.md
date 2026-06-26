@@ -58,14 +58,57 @@ Per-package work uses filters, e.g. `pnpm -F @raisedao/web dev`.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system design, contracts, data flow, failure modes
 - [`docs/GIT.md`](docs/GIT.md) — branching, commits, PR/issue conventions, CI gates
 - [`docs/UI.md`](docs/UI.md) — design system, the Vault, motion and accessibility
+- [`docs/DEMO.md`](docs/DEMO.md) — end-to-end walkthrough: launch → fund → vote → release/refund
+
+## Deployment
+
+Everything runs on free tiers and one testnet, by design.
+
+| Piece          | Host                    | Notes                                                                     |
+| -------------- | ----------------------- | ------------------------------------------------------------------------- |
+| Web            | Vercel Hobby            | Next.js App Router. Root directory `packages/web`; edge, no cold start.   |
+| API + indexer  | Render free web service | One service — the indexer runs **in-process** (`INDEXER_ENABLED=true`).   |
+| Database       | MongoDB Atlas M0        | 512 MB free.                                                              |
+| Realtime cache | Upstash Redis           | OPTIONAL — only adds the cross-instance Socket.IO adapter.                |
+| Contracts      | Arbitrum Sepolia        | RaiseFactory deployed once; a vault/token/governor trio per raise.        |
+| Keep-warm      | UptimeRobot             | Pings Render's `/health` every ~10 min so the free instance never sleeps. |
+
+The API ships a [`render.yaml`](render.yaml) Blueprint (build the `api` workspace,
+start `node dist/server.js`, health check `/health`, env vars as dashboard
+placeholders). **Vercel** needs no config file: import the repo, set the root
+directory to `packages/web`, and add the `NEXT_PUBLIC_*` vars from
+[`packages/web/.env.example`](packages/web/.env.example). Each package's
+`.env.example` documents every variable it reads.
+
+### Free-tier vs needs-budget
+
+What the demo proves on $0, and what production money would buy:
+
+| Capability       | Free-tier (today)                | Needs budget (later)                         |
+| ---------------- | -------------------------------- | -------------------------------------------- |
+| Indexer          | In-process inside the API        | A dedicated indexer worker process           |
+| RPC              | Public Arbitrum Sepolia endpoint | A paid RPC with higher rate limits           |
+| IPFS gateway     | Public gateway (ipfs.io)         | A dedicated/pinned gateway                   |
+| Scale            | Single instance                  | Multi-instance via the Upstash Redis adapter |
+| Database / cache | Atlas M0 + Upstash free          | Paid Atlas / Redis tiers                     |
+| Ops              | UptimeRobot keep-warm            | Real monitoring + alerting                   |
 
 ## Known Scope Boundaries
 
-RaiseDAO runs on free tiers and a testnet. The following are **demonstrated as
-patterns, not production-enforced**: KYC/AML, geofencing, account-abstraction
-gasless UX, fiat on-ramp, and a multisig requirement for milestone proposals.
-Real legal review and a paid security audit would be required before handling
-real money. This list is expanded in the deployment milestone.
+RaiseDAO runs on free tiers and a testnet — it is a portfolio capstone, not a
+production financial product. Being honest about the line:
+
+**Built for real** (cheap, high-value upgrades, actually wired up): EIP-1167
+minimal-proxy clones per raise, a soulbound-style investor/vote token, a protocol
+fee, the reorg-safe in-process indexer, dual-pin IPFS (Pinata with a web3.storage
+fallback), Slither in CI, delegate (ERC20Votes) voting, milestone-gated USDC
+escrow, token-weighted governance through a timelock, SIWE auth, and the live
+WebSocket tally.
+
+**Pattern shown, not enforced** (demonstrated, not production-hardened): KYC/AML,
+geofencing, account-abstraction gasless UX, fiat on-ramp, and a multisig admin /
+multisig-to-propose requirement. Real legal review and a paid security audit would
+be required before handling real money.
 
 ## License
 
