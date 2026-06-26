@@ -17,6 +17,10 @@ const eventSchema = new Schema(
 );
 
 eventSchema.index({ txHash: 1, logIndex: 1 }, { unique: true });
+// The investor dashboard filters Contributed events by args.investor; a sparse
+// index keeps that query off a full collection scan (only Contributed events
+// carry the field, so most docs are absent from the index).
+eventSchema.index({ 'args.investor': 1 }, { sparse: true });
 
 export type Event = InferSchemaType<typeof eventSchema>;
 export const EventModel = model('Event', eventSchema);

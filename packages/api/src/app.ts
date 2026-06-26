@@ -14,6 +14,8 @@ import { proposalsRouter } from './routes/proposals.js';
 import { MongoProposalStore, type ProposalStore } from './proposals/store.js';
 import { tallyRouter } from './routes/tally.js';
 import { MongoTallyStore, type TallyStore } from './tally/store.js';
+import { dashboardRouter } from './routes/dashboard.js';
+import { MongoDashboardStore, type DashboardStore } from './dashboard/store.js';
 import { ethersFounderVerifier, type FounderVerifier } from './campaigns/verify.js';
 import { buildProviders } from './evidence/providers.js';
 import { config } from './config.js';
@@ -34,6 +36,8 @@ export interface AppDeps {
   proposalStore?: ProposalStore;
   /** Override the live-tally reads (tests inject an in-memory store). */
   tallyStore?: TallyStore;
+  /** Override the dashboard read layer (tests inject an in-memory store). */
+  dashboardStore?: DashboardStore;
 }
 
 /** Build the Express app with no side effects (no listen, no DB), so tests can
@@ -49,6 +53,7 @@ export function createApp(deps: AppDeps = {}): Express {
   const campaignStore = deps.campaignStore ?? new MongoCampaignStore();
   const proposalStore = deps.proposalStore ?? new MongoProposalStore();
   const tallyStore = deps.tallyStore ?? new MongoTallyStore();
+  const dashboardStore = deps.dashboardStore ?? new MongoDashboardStore();
   const verifyFounder = deps.campaignFounderVerifier ?? ethersFounderVerifier(config.RPC_URL);
   const app = express();
 
@@ -62,6 +67,7 @@ export function createApp(deps: AppDeps = {}): Express {
   app.use(campaignsRouter(campaignStore, verifyFounder));
   app.use(proposalsRouter(proposalStore, campaignStore));
   app.use(tallyRouter(tallyStore));
+  app.use(dashboardRouter(dashboardStore));
 
   app.use(notFound);
   app.use(errorHandler);
