@@ -73,6 +73,20 @@ export const api = {
     /** Investor's own contribution history, vote record, and claimable refunds. */
     investor: (token: string) => apiFetch<InvestorDashboard>('/dashboard/investor', { token }),
   },
+  admin: {
+    /** Every campaign, risk-scored, highest risk first (admin role only). */
+    campaigns: (token: string) =>
+      apiFetch<{ campaigns: AdminCampaign[] }>('/admin/campaigns', { token }),
+    /** Recent moderation actions, newest first. */
+    audit: (token: string) => apiFetch<{ entries: AdminAuditEntry[] }>('/admin/audit', { token }),
+    /** Hide or un-hide a campaign from public browse; logged server-side. */
+    setHidden: (vault: string, hidden: boolean, reason: string, token: string) =>
+      apiFetch<{ campaign: AdminCampaign }>(`/admin/campaigns/${vault}/hide`, {
+        method: 'POST',
+        body: { hidden, reason },
+        token,
+      }),
+  },
   auth: {
     nonce: (address: string) =>
       apiFetch<{ nonce: string }>('/auth/nonce', { method: 'POST', body: { address } }),
@@ -126,6 +140,44 @@ export interface CampaignFilters {
   category?: string;
   status?: string;
   verified?: boolean;
+}
+
+// ---- Admin moderation (#35) ----
+
+export type RiskLevel = 'low' | 'medium' | 'high';
+
+export interface RiskSignal {
+  key: string;
+  label: string;
+  points: number;
+}
+
+export interface RiskResult {
+  score: number;
+  level: RiskLevel;
+  signals: RiskSignal[];
+}
+
+/** A campaign as the admin panel sees it — moderation fields plus computed risk. */
+export interface AdminCampaign {
+  campaignId: number;
+  vault: string;
+  title: string;
+  founder: string;
+  status: string;
+  verified: boolean;
+  hidden: boolean;
+  raiseTarget: string;
+  totalRaised: string;
+  risk: RiskResult;
+}
+
+export interface AdminAuditEntry {
+  admin: string;
+  action: string;
+  vault: string;
+  reason: string;
+  at: string;
 }
 
 /** A campaign card's data from the browse endpoint. */

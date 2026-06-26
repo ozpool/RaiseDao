@@ -45,6 +45,7 @@ const campaignSchema = new Schema(
     verified: { type: Boolean, default: false },
     featured: { type: Boolean, default: false },
     demo: { type: Boolean, default: false }, // seeded sample, badged in the UI
+    hidden: { type: Boolean, default: false }, // admin-moderated out of public browse (#35)
   },
   { timestamps: true },
 );

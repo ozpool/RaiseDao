@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ConnectButton } from '@/components/wallet/ConnectButton';
+import { AdminNavLink } from './AdminNavLink';
 
 /** Site header chrome. The wordmark is the only `signal` use here; the wallet
  *  connect control is the one interactive island in the nav. */
@@ -23,6 +24,7 @@ export function Header() {
           <Link href="/account" className="transition-colors hover:text-paper">
             Account
           </Link>
+          <AdminNavLink />
           <ConnectButton />
         </nav>
       </div>
