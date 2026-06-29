@@ -7,12 +7,15 @@
     "typecheck": "hardhat compile && tsc --noEmit",
     "build": "hardhat compile",
     "deploy:factory": "hardhat run scripts/deploy.ts --network arbitrumSepolia",
+    "verify:factory": "hardhat run scripts/verify.ts --network arbitrumSepolia",
+    "seed:onchain": "hardhat run scripts/seedOnchain.ts --network arbitrumSepolia",
     "test": "hardhat test"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.8",
     "@nomicfoundation/hardhat-ethers": "^3.0.8",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.12",
+    "@nomicfoundation/hardhat-verify": "^2.1.3",
     "@openzeppelin/contracts": "^5.1.0",
     "@openzeppelin/contracts-upgradeable": "^5.1.0",
     "@typechain/ethers-v6": "^0.5.1",
