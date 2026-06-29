@@ -2,12 +2,14 @@
 
 import dynamic from 'next/dynamic';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { CanvasLoader } from '@/components/sections/CanvasLoader';
 
 // 3D never runs during SSR (avoids a hydration mismatch); it loads after paint.
-// The placeholder keeps the square's footprint so layout never shifts.
+// The loader keeps the square's footprint and reads as the vault arriving rather
+// than a flat black box while the chunk downloads.
 const TrustCoreCanvas = dynamic(
   () => import('@/components/trustcore/TrustCoreCanvas').then((m) => m.TrustCoreCanvas),
-  { ssr: false, loading: () => <div className="h-full w-full bg-void" aria-hidden /> },
+  { ssr: false, loading: () => <CanvasLoader /> },
 );
 
 /** The landing hero: the wordmark as a layout element, the editorial promise,
@@ -18,11 +20,11 @@ export function Hero() {
 
   return (
     <section className="relative overflow-hidden">
-      {/* Atmospheric depth — a soft cyan haze seated under the Vault (right side,
-          not a centred blob), plus a magenta counter-tone low-left. */}
+      {/* Atmospheric depth — a light cyan haze under the Vault (right side) and a
+          soft neutral-grey on the low-left for depth. Kept faint, no heavy purple. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60rem_45rem_at_78%_55%,rgba(63,233,224,0.10),transparent_60%),radial-gradient(50rem_40rem_at_8%_90%,rgba(200,99,240,0.07),transparent_60%)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(60rem_45rem_at_78%_55%,rgba(63,233,224,0.06),transparent_60%),radial-gradient(50rem_40rem_at_8%_90%,rgba(150,165,190,0.045),transparent_60%)]"
       />
       {/* Wordmark band — full-bleed, the type IS the composition. */}
       <div className="px-6 pt-12 lg:pt-20">
