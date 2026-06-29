@@ -74,7 +74,7 @@ export function ContributePanel({
         </p>
         {c.mintedVotes !== null && (
           <p className="font-sans text-small text-mist">
-            Minted {Number(formatUnits(c.mintedVotes, 18)).toLocaleString()} governance tokens.
+            Minted {Number(formatUnits(c.mintedVotes, 6)).toLocaleString()} governance tokens.
           </p>
         )}
         {c.contributeHash && <TxLink hash={c.contributeHash} label="View transaction" />}

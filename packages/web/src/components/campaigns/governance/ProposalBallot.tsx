@@ -46,6 +46,7 @@ export function ProposalBallot({
   const { isConnected } = useAccount();
   const b = useBallot(governor, proposalId, tally?.voters ?? 0);
   const isActive = b.state === ProposalState.Active;
+  const isPending = b.state === ProposalState.Pending;
   const hasWeight = b.weight > 0n;
   const canVote = isConnected && isActive && hasWeight && !b.hasVoted;
   const forVotes = tally ? safeBig(tally.forVotes) : 0n;
@@ -70,9 +71,13 @@ export function ProposalBallot({
 
       <p className="mt-3 font-sans text-caption text-mist">
         Your voting weight:{' '}
-        <span className="text-paper">
-          {Number(formatUnits(b.weight, 18)).toLocaleString()} votes
-        </span>
+        {isPending ? (
+          <span className="text-paper">locks in when voting opens</span>
+        ) : (
+          <span className="text-paper">
+            {Number(formatUnits(b.weight, 6)).toLocaleString()} votes
+          </span>
+        )}
         {b.hasVoted && <span className="ml-2 text-data">· you voted</span>}
       </p>
 
@@ -110,9 +115,17 @@ export function ProposalBallot({
         </div>
       )}
 
+      {isPending && (
+        <p className="mt-2 font-sans text-caption text-mist">
+          This vote hasn&apos;t opened yet. There&apos;s a short on-chain delay after a vote is
+          created before ballots count (about an hour on older campaigns, seconds on new ones). Come
+          back once the status reads &ldquo;Voting open.&rdquo;
+        </p>
+      )}
       {isActive && isConnected && !hasWeight && !b.hasVoted && (
         <p className="mt-2 font-sans text-caption text-mist">
           You held no governance tokens at the snapshot, so you can&apos;t vote on this proposal.
+          Make sure you contributed and delegated before this vote opened.
         </p>
       )}
       {!isConnected && (

@@ -13,7 +13,9 @@ import { injected } from 'wagmi/connectors';
 export const wagmiConfig: Config = createConfig({
   chains: [arbitrumSepolia],
   connectors: [injected()],
-  transports: { [arbitrumSepolia.id]: http() },
+  // A dedicated RPC (set NEXT_PUBLIC_RPC_URL) makes the app's own gas estimation
+  // reliable; http(undefined) falls back to the public endpoint when unset.
+  transports: { [arbitrumSepolia.id]: http(process.env.NEXT_PUBLIC_RPC_URL) },
   ssr: true,
 });
 

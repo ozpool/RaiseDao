@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
 import { milestoneGovernorAbi } from '@/lib/abi';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 import { buildMilestoneProposal, parseProposalId } from '@/lib/proposal';
+import { txOverrides } from '@/lib/gas';
 
 interface ProposeArgs {
   campaignId: number;
@@ -23,6 +24,8 @@ interface ProposeArgs {
  *  half-done state. */
 export function useProposeMilestone(args: ProposeArgs) {
   const token = useAuthStore((s) => s.token);
+  const { address } = useAccount();
+  const publicClient = usePublicClient();
   const queryClient = useQueryClient();
   const write = useWriteContract();
   const receipt = useWaitForTransactionReceipt({ hash: write.data });
@@ -31,14 +34,21 @@ export function useProposeMilestone(args: ProposeArgs) {
 
   const built = buildMilestoneProposal(args.vault, args.milestoneIndex, args.evidenceCid);
 
-  function propose() {
+  async function propose() {
     setSaveError(null);
     setSaved(false);
+    const fees = await txOverrides(publicClient, address, {
+      address: args.governor,
+      abi: milestoneGovernorAbi,
+      functionName: 'propose',
+      args: [built.targets, built.values, built.calldatas, built.description],
+    });
     write.writeContract({
       address: args.governor,
       abi: milestoneGovernorAbi,
       functionName: 'propose',
       args: [built.targets, built.values, built.calldatas, built.description],
+      ...fees,
     });
   }
 

@@ -1,9 +1,16 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import {
+  useAccount,
+  usePublicClient,
+  useReadContract,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from 'wagmi';
 import { zeroAddress } from 'viem';
 import { govTokenAbi } from '@/lib/abi';
+import { txOverrides } from '@/lib/gas';
 
 export interface UseDelegate {
   /** GovToken balance of the connected wallet (18 dec, soulbound). */
@@ -25,6 +32,7 @@ export interface UseDelegate {
  *  whether that's been done and exposes the one-click activation. */
 export function useDelegate(token: `0x${string}`): UseDelegate {
   const { address } = useAccount();
+  const publicClient = usePublicClient();
   const enabled = Boolean(address);
 
   const balanceQ = useReadContract({
@@ -50,13 +58,20 @@ export function useDelegate(token: `0x${string}`): UseDelegate {
     if (activateR.isSuccess) void delegateeQ.refetch();
   }, [activateR.isSuccess, delegateeQ]);
 
-  const activate = () => {
+  const activate = async () => {
     if (!address) return;
+    const fees = await txOverrides(publicClient, address, {
+      address: token,
+      abi: govTokenAbi,
+      functionName: 'delegate',
+      args: [address],
+    });
     activateW.writeContract({
       address: token,
       abi: govTokenAbi,
       functionName: 'delegate',
       args: [address],
+      ...fees,
     });
   };
 

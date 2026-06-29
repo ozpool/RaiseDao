@@ -4,6 +4,8 @@
  *  tracks the campaign status: cyan while funding, gold once it succeeds/releases,
  *  a muted steel if it failed. Sits in the detail page's right column. */
 
+import { toUSDCNum } from '@/lib/format';
+
 const STATUS_HUE: Record<string, string> = {
   funding: '#38E0D8',
   active: '#38E0D8',
@@ -28,12 +30,17 @@ export function FundingGem({
   target: string;
   status: string;
 }) {
-  const t = Number(target);
-  const r = Number(raised);
-  const pct = t > 0 ? Math.min(100, Math.max(0, Math.round((r / t) * 100))) : 0;
-  const hue = STATUS_HUE[status] ?? '#38E0D8';
+  const t = toUSDCNum(target);
+  const r = toUSDCNum(raised);
+  // True percent (can pass 100% — the vault takes contributions past target). The
+  // liquid can't rise above the gem, so the waterline caps at full while the label
+  // shows the real figure and the gem glows gold once over-funded.
+  const pct = t > 0 ? Math.max(0, Math.round((r / t) * 100)) : 0;
+  const fill = Math.min(100, pct);
+  const over = pct > 100;
+  const hue = over ? '#FFCF6B' : (STATUS_HUE[status] ?? '#38E0D8');
   // Liquid surface: the higher the funding, the higher the waterline.
-  const waterline = BOTTOM - (pct / 100) * (BOTTOM - TOP);
+  const waterline = BOTTOM - (fill / 100) * (BOTTOM - TOP);
 
   return (
     <svg

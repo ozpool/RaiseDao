@@ -13,9 +13,10 @@ export function fmtUSDC(raw: string): string {
   return fmtDollars(Number(formatUnits(BigInt(raw), 6)));
 }
 
-/** Format a raw governance token uint256 string (18 decimals) for display. */
+/** Format a raw governance-token uint256 string for display. Votes are minted
+ *  1:1 with contributed USDC (6 decimals), so 1_000_000 raw = 1 vote. */
 export function fmtGov(raw: string): string {
-  const n = Number(formatUnits(BigInt(raw), 18));
+  const n = Number(formatUnits(BigInt(raw), 6));
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return n.toFixed(4);

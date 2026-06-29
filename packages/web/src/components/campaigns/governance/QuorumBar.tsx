@@ -42,5 +42,5 @@ export function QuorumBar({ forVotes, quorum }: { forVotes: bigint; quorum: bigi
 }
 
 function fmt(weight: bigint): string {
-  return Number(formatUnits(weight, 18)).toLocaleString();
+  return Number(formatUnits(weight, 6)).toLocaleString();
 }

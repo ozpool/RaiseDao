@@ -26,8 +26,8 @@ export function ActivateVoting({ token }: { token: `0x${string}` }) {
           Voting power active
         </p>
         <p className="font-sans text-small text-mist">
-          Your {Number(formatUnits(d.balance, 18)).toLocaleString()} votes now count toward
-          milestone decisions.
+          Your {Number(formatUnits(d.balance, 6)).toLocaleString()} votes now count toward milestone
+          decisions.
         </p>
         {d.activateHash && (
           <a
@@ -51,7 +51,7 @@ export function ActivateVoting({ token }: { token: `0x${string}` }) {
         Activate voting power
       </p>
       <p className="font-sans text-small text-mist">
-        You hold {Number(formatUnits(d.balance, 18)).toLocaleString()} governance tokens, but they
+        You hold {Number(formatUnits(d.balance, 6)).toLocaleString()} governance tokens, but they
         stay dormant until you activate them. A one-time transaction lets you vote on milestone
         releases.
       </p>
