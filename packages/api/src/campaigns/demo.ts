@@ -89,6 +89,10 @@ export function demoCampaigns() {
 
   return base.map((c, i) => ({
     ...c,
+    // Money is stored as raw 6-decimal USDC everywhere (the on-chain unit the UI
+    // formats with ÷1e6); the literals above are plain dollars, so scale them.
+    raiseTarget: String(BigInt(c.raiseTarget) * 1_000_000n),
+    totalRaised: String(BigInt(c.totalRaised) * 1_000_000n),
     campaignId: 9001 + i,
     vault: addr(0xa000 + i),
     token: addr(0xb000 + i),

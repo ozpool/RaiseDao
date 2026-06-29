@@ -144,8 +144,9 @@ async function main() {
     governor: addr(d.id, 3),
     founder: addr(d.id, 4),
     status: d.status,
-    totalRaised: String(d.raised),
-    raiseTarget: String(d.target),
+    // Stored as raw 6-decimal USDC (the on-chain unit the UI formats with ÷1e6).
+    totalRaised: String(BigInt(d.raised) * 1_000_000n),
+    raiseTarget: String(BigInt(d.target) * 1_000_000n),
     protocolFeeBps: 100,
     fundingDeadline: now + 45 * DAY,
     milestones: buildMilestones(d.milestones, d.released),
