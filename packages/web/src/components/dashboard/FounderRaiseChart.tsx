@@ -21,7 +21,14 @@ export function FounderRaiseChart({ campaigns }: { campaigns: FounderRow[] }) {
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid vertical={false} stroke="var(--color-line)" />
+          <defs>
+            {/* Vertical gradient gives the bars depth instead of a flat fill. */}
+            <linearGradient id="grad-raise" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--color-data)" stopOpacity={1} />
+              <stop offset="100%" stopColor="var(--color-data)" stopOpacity={0.35} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="var(--color-line)" strokeDasharray="2 5" />
           <XAxis
             dataKey="name"
             tick={{ fill: 'var(--color-mist)', fontSize: 11 }}
@@ -35,10 +42,12 @@ export function FounderRaiseChart({ campaigns }: { campaigns: FounderRow[] }) {
             tickFormatter={(v: number) => (v >= 1000 ? `$${v / 1000}K` : `$${v}`)}
           />
           <Tooltip
+            cursor={{ fill: 'rgba(63,233,224,0.06)' }}
             contentStyle={{
               background: 'var(--color-panel)',
               border: '1px solid var(--color-line)',
               borderRadius: 8,
+              boxShadow: '0 12px 34px rgba(0,0,0,0.5)',
             }}
             labelStyle={{ color: 'var(--color-paper)' }}
             itemStyle={{ color: 'var(--color-mist)' }}
@@ -49,7 +58,13 @@ export function FounderRaiseChart({ campaigns }: { campaigns: FounderRow[] }) {
           />
           {/* raised fills from the bottom; remaining sits on top — together they
               always reach the target height, giving a fill-meter visual. */}
-          <Bar dataKey="raised" stackId="a" fill="var(--color-data)" radius={[0, 0, 2, 2]} />
+          <Bar
+            dataKey="raised"
+            stackId="a"
+            fill="url(#grad-raise)"
+            radius={[0, 0, 2, 2]}
+            animationDuration={900}
+          />
           <Bar dataKey="remaining" stackId="a" fill="var(--color-line)" radius={[2, 2, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
