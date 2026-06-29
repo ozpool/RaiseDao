@@ -29,6 +29,7 @@ function toCreatePayload(
     governor: result.governor,
     title: draft.title,
     summary: draft.summary,
+    image: draft.image,
     raiseTarget: draft.raiseTarget,
     fundingDeadline: Number(params.fundingDeadline),
     milestones: draft.milestones.map((m, i) => ({
