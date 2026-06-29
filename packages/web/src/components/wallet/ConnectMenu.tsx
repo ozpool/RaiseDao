@@ -22,11 +22,12 @@ function metaFor(c: Connector, hasWallet: boolean): Meta {
   if (c.id === 'injected')
     return {
       label: 'Browser Wallet',
-      hint: hasWallet ? 'MetaMask · Brave · Rabby — fastest' : 'Not detected — install one',
+      hint: hasWallet ? 'MetaMask, Brave or Rabby' : 'Not detected, install one',
     };
   if (c.id.toLowerCase().includes('coinbase'))
     return { label: 'Coinbase Wallet', hint: 'Scan with the app or extension' };
-  return { label: c.name, hint: 'Connect' };
+  // An EIP-6963 wallet detected by name (MetaMask, Brave, Rabby…).
+  return { label: c.name, hint: 'Browser extension' };
 }
 
 export interface ConnectMenuProps {

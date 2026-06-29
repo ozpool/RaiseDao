@@ -1,19 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, type Connector } from 'wagmi';
 import { useSiweLogin } from '@/hooks/useSiweLogin';
 import { useAuthStore } from '@/stores/auth';
 import { ConnectMenu } from './ConnectMenu';
-
-/** 0x1234…abcd — enough to recognise, short enough for the nav. */
-function shortAddress(a: string): string {
-  return `${a.slice(0, 6)}…${a.slice(-4)}`;
-}
+import { AccountMenu } from './AccountMenu';
 
 const PILL =
   'inline-flex items-center gap-2 rounded-full border border-line bg-panel/60 px-4 py-1.5 font-mono text-caption uppercase tracking-widest transition-colors';
 const ACTIVE = 'text-paper hover:border-data hover:text-data disabled:opacity-50';
+
+/** EIP-6963 surfaces a named connector per installed wallet (MetaMask, Brave,
+ *  Rabby…). When any of those exist, the generic `injected` connector is just a
+ *  duplicate that ends at the same wallet, so we hide it and show the real names.
+ *  Only when nothing specific is detected do we fall back to the generic one. */
+function pickConnectors(connectors: readonly Connector[]): readonly Connector[] {
+  const named = connectors.filter((c) => c.id !== 'injected');
+  return named.length > 0 ? named : connectors;
+}
 
 /** Wallet control for the header, with explicit states: install a wallet, connect
  *  it, sign in with SIWE, then signed-in (click to sign out). Errors are surfaced
@@ -50,21 +55,17 @@ export function ConnectButton() {
     return <span className={`${PILL} text-mist`}>Wallet</span>;
   }
 
-  // Signed in: show the address; clicking signs out (and disconnects).
+  // Signed in: the address pill opens a menu (copy / explorer / sign out) so a
+  // click never logs you out by accident.
   if (isConnected && address && status === 'authenticated') {
     return (
-      <button
-        type="button"
-        onClick={() => {
+      <AccountMenu
+        address={address}
+        onSignOut={() => {
           clear();
           disconnect();
         }}
-        title="Sign out"
-        className={`${PILL} ${ACTIVE}`}
-      >
-        <span className="h-1.5 w-1.5 rounded-full bg-data" aria-hidden />
-        {shortAddress(address)}
-      </button>
+      />
     );
   }
 
@@ -96,7 +97,7 @@ export function ConnectButton() {
   // Not connected: a menu of wallet options (multi-wallet picker → SIWE next).
   return (
     <ConnectMenu
-      connectors={connectors}
+      connectors={pickConnectors(connectors)}
       isPending={isPending}
       hasWallet={hasWallet}
       note={note}

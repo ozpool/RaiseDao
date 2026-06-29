@@ -11,65 +11,56 @@ export interface Beat {
   title: string;
   body: string;
   accent: BeatAccent;
-  /** The real contract call this beat dramatizes — shown in mono as a craft
-   *  signal for technical visitors. Every beat maps 1:1 to an actual function. */
-  call?: string;
 }
 
 export const BEATS: Beat[] = [
   {
     id: 'hold',
     num: '00',
-    label: 'The Vault',
+    label: 'The vault',
     title: 'Watch trust become visible.',
-    body: 'Every campaign deploys its own vault — a smart contract that holds the money, not the founder’s wallet. Scroll to see the full lifecycle of a raise.',
+    body: 'Every campaign deploys its own vault, a smart contract that holds the money instead of the founder’s wallet. Scroll to watch a raise play out.',
     accent: 'neutral',
-    call: 'RaiseFactory.deploy()',
   },
   {
     id: 'raise',
     num: '01',
     label: 'The raise',
     title: 'Backers fund the vault.',
-    body: 'Each contribution in USDC goes straight into the campaign’s vault and counts toward the goal. The founder never touches it — the contract does.',
+    body: 'Contributions in USDC flow straight into the vault and count toward the goal. The founder never touches them. The contract holds the line.',
     accent: 'data',
-    call: 'RaiseVault.contribute()',
   },
   {
     id: 'lock',
     num: '02',
     label: 'The lock',
     title: 'The funds lock.',
-    body: 'Once raised, no one can withdraw — not the founder, not the platform. The contract is the only key, and it opens only on a passing vote.',
+    body: 'Once raised, nobody can pull the money out. Not the founder, not the platform. The contract is the only key, and it turns only on a passing vote.',
     accent: 'data',
-    call: 'onlyGovernor',
   },
   {
     id: 'vote',
     num: '03',
     label: 'The vote',
     title: 'Backers vote each milestone.',
-    body: 'To release a tranche, backers vote on-chain. Miss quorum or fail the vote and the money stays locked. Approval is the only way funds move.',
+    body: 'Releasing a tranche takes an on-chain vote. Miss the quorum or lose the vote, and the money stays put. Approval is the only way funds ever move.',
     accent: 'vote',
-    call: 'MilestoneGovernor.castVote()',
   },
   {
     id: 'release',
     num: '04',
     label: 'The release',
-    title: 'Approved — one tranche releases.',
-    body: 'A passing vote unlocks exactly one milestone’s funds to the founder — automatically, with no human approving it. The rest stays sealed for the next vote.',
+    title: 'Approved. One tranche releases.',
+    body: 'A passing vote frees exactly one milestone’s funds to the founder, with no person signing off. The rest stays sealed for the next vote.',
     accent: 'gold',
-    call: 'RaiseVault.releaseMilestone()',
   },
   {
     id: 'loop',
     num: '05',
     label: 'Repeat',
-    title: 'Repeat — or refund.',
-    body: 'The vault re-seals at the next milestone and the cycle repeats. If a milestone fails, every backer claims a pro-rata refund. Trust, not promises.',
+    title: 'Repeat, or refund.',
+    body: 'The vault re-seals for the next milestone and the rhythm continues. If a milestone fails, every backer takes a pro-rata refund. Proof, not promises.',
     accent: 'data',
-    call: 'RaiseVault.claimRefund()',
   },
 ];
 

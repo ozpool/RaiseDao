@@ -91,9 +91,23 @@ export class MongoIndexerStore implements IndexerStore {
         { upsert: true },
       );
     } else if (e.type === 'Contributed') {
+      // Accumulate the raised total on both the campaign doc (browse/detail read
+      // it directly) and analytics (the founder dashboard reads it there).
+      // Stored as decimal strings, so we read-modify-write with BigInt; apply()
+      // runs once per event (idempotency guard above), so this never double-adds.
+      const amount = BigInt((e.args.amount as string | undefined) ?? '0');
+      const campaign = await CampaignModel.findOne({ campaignId: id }, { totalRaised: 1 });
+      const campaignTotal = (BigInt(campaign?.totalRaised ?? '0') + amount).toString();
+      await CampaignModel.updateOne({ campaignId: id }, { $set: { totalRaised: campaignTotal } });
+
+      const analytics = await AnalyticsModel.findOne({ campaignId: id }, { totalRaised: 1 });
+      const analyticsTotal = (BigInt(analytics?.totalRaised ?? '0') + amount).toString();
       await AnalyticsModel.updateOne(
         { campaignId: id },
-        { $inc: { contributorCount: 1 }, $set: { lastEventBlock: e.blockNumber } },
+        {
+          $inc: { contributorCount: 1 },
+          $set: { totalRaised: analyticsTotal, lastEventBlock: e.blockNumber },
+        },
         { upsert: true },
       );
     } else if (e.type === 'MilestoneReleased') {
@@ -102,13 +116,26 @@ export class MongoIndexerStore implements IndexerStore {
         { $inc: { milestonesReleased: 1 } },
         { upsert: true },
       );
+      // Reflect the released milestone in the campaign's schedule so the detail
+      // page shows it (the doc's milestone statuses are otherwise set at create).
+      const index = Number(e.args.index ?? 0);
+      await CampaignModel.updateOne(
+        { campaignId: id },
+        { $set: { 'milestones.$[m].status': 'released' } },
+        { arrayFilters: [{ 'm.index': index }] },
+      );
     } else if (e.type === 'MilestoneFailed') {
       await AnalyticsModel.updateOne(
         { campaignId: id },
         { $inc: { milestonesFailed: 1 } },
         { upsert: true },
       );
-      await CampaignModel.updateOne({ campaignId: id }, { $set: { status: 'failed' } });
+      const index = Number(e.args.index ?? 0);
+      await CampaignModel.updateOne(
+        { campaignId: id },
+        { $set: { status: 'failed', 'milestones.$[m].status': 'failed' } },
+        { arrayFilters: [{ 'm.index': index }] },
+      );
     } else if (e.type === 'VoteCast') {
       await VoteModel.updateOne(
         { proposalId: e.args.proposalId, voter: e.args.voter },

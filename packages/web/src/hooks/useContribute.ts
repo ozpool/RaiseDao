@@ -1,10 +1,17 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import {
+  useAccount,
+  usePublicClient,
+  useReadContract,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from 'wagmi';
 import { decodeEventLog } from 'viem';
 import { erc20Abi, raiseVaultAbi } from '@/lib/abi';
 import { USDC_ADDRESS } from '@/lib/config';
+import { txOverrides } from '@/lib/gas';
 
 export interface UseContribute {
   balance: bigint;
@@ -25,6 +32,7 @@ export interface UseContribute {
  *  is next, and pulls the minted vote count out of the Contributed event. */
 export function useContribute(vault: `0x${string}`): UseContribute {
   const { address } = useAccount();
+  const publicClient = usePublicClient();
   const enabled = Boolean(address);
 
   const allowanceQ = useReadContract({
@@ -52,20 +60,36 @@ export function useContribute(vault: `0x${string}`): UseContribute {
     if (approveR.isSuccess) void allowanceQ.refetch();
   }, [approveR.isSuccess, allowanceQ]);
 
-  const approve = (amount: bigint) =>
-    approveW.writeContract({
+  const approve = async (amount: bigint) => {
+    const fees = await txOverrides(publicClient, address, {
       address: USDC_ADDRESS,
       abi: erc20Abi,
       functionName: 'approve',
       args: [vault, amount],
     });
-  const contribute = (amount: bigint) =>
-    contributeW.writeContract({
+    approveW.writeContract({
+      address: USDC_ADDRESS,
+      abi: erc20Abi,
+      functionName: 'approve',
+      args: [vault, amount],
+      ...fees,
+    });
+  };
+  const contribute = async (amount: bigint) => {
+    const fees = await txOverrides(publicClient, address, {
       address: vault,
       abi: raiseVaultAbi,
       functionName: 'contribute',
       args: [amount],
     });
+    contributeW.writeContract({
+      address: vault,
+      abi: raiseVaultAbi,
+      functionName: 'contribute',
+      args: [amount],
+      ...fees,
+    });
+  };
 
   const mintedVotes = useMemo<bigint | null>(() => {
     if (!contributeR.data) return null;

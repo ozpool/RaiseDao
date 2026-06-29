@@ -3,10 +3,10 @@
 import { BEATS, ACCENT_TEXT } from './beats';
 
 /** The editorial callouts, pinned to the lower-left of the journey viewport. All
- *  six render stacked; the active one materialises in — each line blurs into
- *  focus and rises in turn (label → title → body → call), so the copy feels like
- *  it condenses into existence rather than hard-swapping. Inactive captions blur
- *  back out. The mono call line names the real contract function for the beat. */
+ *  six render stacked; the active one materialises in, each line blurring into
+ *  focus and rising in turn (label, then title, then body), so the copy feels
+ *  like it condenses into existence rather than hard-swapping. Inactive captions
+ *  blur back out. */
 export function JourneyCaptions({ active }: { active: number }) {
   return (
     <div className="pointer-events-none relative h-full">
@@ -48,15 +48,6 @@ export function JourneyCaptions({ active }: { active: number }) {
             >
               {beat.body}
             </p>
-            {beat.call && (
-              <p
-                className={`${line} mt-5 font-mono text-caption tracking-tight text-mist/70`}
-                style={delayed(270)}
-              >
-                <span className="text-mist/40">{'// '}</span>
-                <span className={ACCENT_TEXT[beat.accent]}>{beat.call}</span>
-              </p>
-            )}
           </div>
         );
       })}

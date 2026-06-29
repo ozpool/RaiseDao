@@ -20,7 +20,7 @@ export interface ScoredCampaign {
 
 export interface AuditEntry {
   admin: string;
-  action: string; // 'hide' | 'unhide'
+  action: string; // 'hide' | 'unhide' | 'verify' | 'unverify'
   vault: string;
   reason: string;
   at: string; // ISO timestamp
@@ -33,6 +33,15 @@ export interface AdminStore {
   setHidden(
     vault: string,
     hidden: boolean,
+    admin: string,
+    reason?: string,
+  ): Promise<ScoredCampaign | null>;
+  /** Grant or revoke a campaign's verified badge and log it. Null if unknown.
+   *  This is the only way `verified` is ever set: an admin reviews the campaign
+   *  (its on-chain founder, its risk signals) and vouches for it. */
+  setVerified(
+    vault: string,
+    verified: boolean,
     admin: string,
     reason?: string,
   ): Promise<ScoredCampaign | null>;
@@ -149,6 +158,30 @@ export class MongoAdminStore implements AdminStore {
     return target ? scoreWithin(target, all, Date.now()) : null;
   }
 
+  async setVerified(
+    vault: string,
+    verified: boolean,
+    admin: string,
+    reason = '',
+  ): Promise<ScoredCampaign | null> {
+    const v = vault.toLowerCase();
+    const updated = await CampaignModel.findOneAndUpdate(
+      { vault: v },
+      { $set: { verified } },
+      { new: true },
+    ).lean();
+    if (!updated) return null;
+    await AuditLogModel.create({
+      admin: admin.toLowerCase(),
+      action: verified ? 'verify' : 'unverify',
+      vault: v,
+      reason,
+    });
+    const all = await this.raw();
+    const target = all.find((x) => x.vault === v);
+    return target ? scoreWithin(target, all, Date.now()) : null;
+  }
+
   async recentAudit(limit = 50): Promise<AuditEntry[]> {
     const rows = await AuditLogModel.find().sort({ createdAt: -1 }).limit(limit).lean();
     return rows.map((r) => {
@@ -225,6 +258,28 @@ export class InMemoryAdminStore implements AdminStore {
     this.audit.unshift({
       admin: admin.toLowerCase(),
       action: hidden ? 'hide' : 'unhide',
+      vault: v,
+      reason,
+      at: new Date().toISOString(),
+    });
+    const all = this.raw();
+    const target = all.find((x) => x.vault === v)!;
+    return scoreWithin(target, all, Date.now());
+  }
+
+  async setVerified(
+    vault: string,
+    verified: boolean,
+    admin: string,
+    reason = '',
+  ): Promise<ScoredCampaign | null> {
+    const v = vault.toLowerCase();
+    const doc = this.seed.find((c) => c.vault.toLowerCase() === v);
+    if (!doc) return null;
+    doc.verified = verified;
+    this.audit.unshift({
+      admin: admin.toLowerCase(),
+      action: verified ? 'verify' : 'unverify',
       vault: v,
       reason,
       at: new Date().toISOString(),

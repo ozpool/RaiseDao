@@ -1,11 +1,12 @@
 'use client';
 
 import { useCallback, useMemo, useRef } from 'react';
-import { useAccount, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { decodeEventLog } from 'viem';
 import { raiseFactoryAbi } from '@/lib/abi';
 import { FACTORY_ADDRESS } from '@/lib/config';
 import { toCampaignParams } from '@/lib/deploy-params';
+import { txOverrides } from '@/lib/gas';
 import type { DraftRecord } from '@/lib/api';
 
 export interface DeployedCampaign {
@@ -39,6 +40,7 @@ export interface UseDeployCampaign {
  *  factory address is set for the network. */
 export function useDeployCampaign(draft: DraftRecord): UseDeployCampaign {
   const { address } = useAccount();
+  const publicClient = usePublicClient();
   const { writeContract, data: hash, error: writeError, isPending, reset } = useWriteContract();
   const {
     data: receipt,
@@ -50,17 +52,24 @@ export function useDeployCampaign(draft: DraftRecord): UseDeployCampaign {
   // the same deadlines that went on-chain, not a recomputed (drifted) set.
   const paramsRef = useRef<DeployParams | null>(null);
 
-  const deploy = useCallback(() => {
+  const deploy = useCallback(async () => {
     if (!FACTORY_ADDRESS || !address) return;
     const params = toCampaignParams(draft, address);
     paramsRef.current = params;
-    writeContract({
+    const fees = await txOverrides(publicClient, address, {
       address: FACTORY_ADDRESS,
       abi: raiseFactoryAbi,
       functionName: 'deploy',
       args: [params],
     });
-  }, [address, draft, writeContract]);
+    writeContract({
+      address: FACTORY_ADDRESS,
+      abi: raiseFactoryAbi,
+      functionName: 'deploy',
+      args: [params],
+      ...fees,
+    });
+  }, [address, draft, writeContract, publicClient]);
 
   const result = useMemo<DeployedCampaign | null>(() => {
     if (!receipt) return null;

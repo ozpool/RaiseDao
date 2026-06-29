@@ -14,15 +14,15 @@ interface QA {
 const QAS: QA[] = [
   {
     q: 'Who actually controls the money?',
-    a: 'The vault contract does. Not the founder, not RaiseDAO. Once a campaign funds, the only thing that can move the money is a passing milestone vote — and that logic lives on-chain where anyone can read it.',
+    a: 'The vault contract does. Not the founder, not RaiseDAO. Once a campaign funds, the only thing that can move the money is a passing milestone vote, and that logic lives on-chain where anyone can read it.',
   },
   {
     q: 'What happens if a project fails?',
-    a: 'If a milestone is voted down or never met, the campaign can fail and every backer claims a pro-rata refund straight from the vault. The platform has no power to block or delay it — the refund path is enforced by the same contract as the release path.',
+    a: 'If a milestone is voted down or never met, the campaign can fail and every backer claims a pro-rata refund straight from the vault. The platform has no power to block or delay it. The refund path is enforced by the same contract as the release path.',
   },
   {
     q: 'What chain and token does it use?',
-    a: 'This build runs on Arbitrum Sepolia and settles in USDC. It is a testnet portfolio project — funds are test tokens, not real money.',
+    a: 'This build runs on Arbitrum Sepolia and settles in USDC. It is a testnet portfolio project, so funds are test tokens, not real money.',
   },
   {
     q: 'Can RaiseDAO freeze or redirect funds?',
@@ -41,7 +41,7 @@ export function Faq() {
     <section className="relative py-24 lg:py-32" aria-label="Frequently asked questions">
       <div className="mx-auto max-w-3xl px-6">
         <p className="font-mono text-caption uppercase tracking-widest text-mist">
-          Questions <span className="text-data">//</span> straight answers
+          Questions <span className="text-data">·</span> straight answers
         </p>
         <h2 className="mt-4 font-display text-h1 font-semibold leading-[1.05] tracking-tight text-paper">
           The things you should ask first.

@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { BEATS, ACCENT_TEXT, type BeatAccent } from '@/components/journey/beats';
+import { ACCENT_TEXT, type BeatAccent } from '@/components/journey/beats';
 
-/** A visual recap of the journey: the six beats threaded by a living spine — a
- *  weaving SVG path that draws itself as you scroll (stroke-dashoffset), a cyan→
- *  magenta→gold gradient flowing down it, and a glowing node that travels the
- *  line while each ◇ lights as the draw reaches it. The spine is measured to the
- *  real first/last node positions, so the path and the travelling dot begin and
- *  end exactly on a node. Copy comes from BEATS so it never drifts. */
+/** The plain-language rulebook of a raise, threaded by a living spine: a weaving
+ *  SVG path that draws itself as you scroll (stroke-dashoffset), a cyan→magenta→
+ *  gold gradient flowing down it, and a glowing node that travels the line while
+ *  each ◇ lights as the draw reaches it. The cinematic JourneySection above shows
+ *  the *feel* of a raise; this section states the actual rules and numbers, so the
+ *  two never repeat each other. */
 
 const GLOW: Record<BeatAccent, string> = {
   data: '#3FE9E0',
@@ -16,6 +16,69 @@ const GLOW: Record<BeatAccent, string> = {
   gold: '#E8B86D',
   neutral: '#C2CCE0',
 };
+
+interface Step {
+  n: string;
+  label: string;
+  title: string;
+  body: string;
+  fact: string;
+  accent: BeatAccent;
+}
+
+// The real, concrete rules of a raise. These are the facts a backer or founder
+// actually needs: who holds the money, how funds unlock, how long a vote runs,
+// what it costs, and what happens when a milestone fails.
+const STEPS: Step[] = [
+  {
+    n: '01',
+    label: 'The vault',
+    title: 'Every raise gets its own vault.',
+    body: 'When a founder launches, a dedicated smart contract is deployed to hold the money. The founder never holds your funds. The vault does, in plain view on-chain.',
+    fact: 'One contract per campaign',
+    accent: 'data',
+  },
+  {
+    n: '02',
+    label: 'Funding',
+    title: 'Backers fund it in USDC.',
+    body: 'Anyone can contribute USDC up to the funding deadline. Every contribution is escrowed in the vault and counts toward the goal. Nothing is spent yet.',
+    fact: 'Funds escrowed, not spent',
+    accent: 'data',
+  },
+  {
+    n: '03',
+    label: 'Milestones',
+    title: 'Money unlocks one milestone at a time.',
+    body: 'Funds never release in one lump. The raise is split into milestones, each holding a fixed share, and milestones come due about a month apart.',
+    fact: 'Released in tranches, ~30 days apart',
+    accent: 'data',
+  },
+  {
+    n: '04',
+    label: 'The vote',
+    title: 'Backers vote on every release.',
+    body: 'To unlock a milestone, backers vote on-chain. A vote runs for about a day, and at least 10% of the votes must take part for it to count. No vote, no money.',
+    fact: 'About 1 day to vote, 10% quorum',
+    accent: 'vote',
+  },
+  {
+    n: '05',
+    label: 'Release',
+    title: 'A passing vote releases the funds.',
+    body: 'Once a vote passes, a short safety delay runs before anything moves. Then exactly that milestone’s share goes to the founder. A 2% protocol fee is taken only on what is released.',
+    fact: '2% fee, only on released funds',
+    accent: 'gold',
+  },
+  {
+    n: '06',
+    label: 'Refund',
+    title: 'Fail a milestone, get your money back.',
+    body: 'If a milestone is voted down or its deadline passes, the raise fails and every backer claims a refund in proportion to what they put in. The rest of the money never leaves the vault.',
+    fact: 'Pro-rata refund on failure',
+    accent: 'gold',
+  },
+];
 
 // A snake path in a 40×1000 box (scaled to the measured node span, aspect ignored).
 // Fuller amplitude + more cycles so it reads as a weaving snake, not a faint rule.
@@ -81,11 +144,15 @@ export function Lifecycle() {
     <section className="relative py-24 lg:py-32" aria-label="The lifecycle of a raise">
       <div className="mx-auto max-w-5xl px-6">
         <p className="font-mono text-caption uppercase tracking-widest text-mist">
-          The lifecycle <span className="text-data">//</span> step by step
+          How a raise works
         </p>
         <h2 className="mt-4 max-w-2xl font-display text-h1 font-semibold leading-[1.05] tracking-tight text-paper">
-          One raise, from deploy to release.
+          The rules, in plain language.
         </h2>
+        <p className="mt-4 max-w-xl font-sans text-body leading-relaxed text-mist">
+          Every step is enforced by the contract, not by us. Here is exactly what happens to your
+          money, from the moment you back a raise to the moment it releases or refunds.
+        </p>
 
         <div ref={wrap} className="relative mt-16 pl-14">
           {/* The living spine, drawn as you scroll, spanning first→last node. */}
@@ -134,10 +201,10 @@ export function Lifecycle() {
           />
 
           <ol className="relative">
-            {BEATS.map((beat, i) => {
-              const lit = progress >= (i + 0.4) / BEATS.length;
+            {STEPS.map((step, i) => {
+              const lit = progress >= (i + 0.4) / STEPS.length;
               return (
-                <li key={beat.id} className="relative pb-14 last:pb-0">
+                <li key={step.n} className="relative pb-14 last:pb-0">
                   <span
                     data-node
                     className="absolute -left-11 top-1 flex h-4 w-4 items-center justify-center"
@@ -146,28 +213,27 @@ export function Lifecycle() {
                     <span
                       className="h-3 w-3 rotate-45 rounded-[2px] transition-all duration-500"
                       style={{
-                        background: lit ? GLOW[beat.accent] : '#2a2f3a',
-                        boxShadow: lit ? `0 0 14px ${GLOW[beat.accent]}` : 'none',
+                        background: lit ? GLOW[step.accent] : '#2a2f3a',
+                        boxShadow: lit ? `0 0 14px ${GLOW[step.accent]}` : 'none',
                       }}
                     />
                   </span>
                   <p
-                    className={`font-mono text-caption uppercase tracking-widest ${ACCENT_TEXT[beat.accent]}`}
+                    className={`font-mono text-caption uppercase tracking-widest ${ACCENT_TEXT[step.accent]}`}
                   >
-                    {beat.num} <span className="text-mist">/ {beat.label}</span>
+                    {step.n} <span className="text-mist">/ {step.label}</span>
                   </p>
                   <h3 className="mt-2 font-display text-h2 font-semibold tracking-tight text-paper">
-                    {beat.title}
+                    {step.title}
                   </h3>
                   <p className="mt-2 max-w-xl font-sans text-body leading-relaxed text-mist">
-                    {beat.body}
+                    {step.body}
                   </p>
-                  {beat.call && (
-                    <p className="mt-3 font-mono text-caption tracking-tight text-mist/60">
-                      <span className="text-mist/40">{'// '}</span>
-                      <span className={ACCENT_TEXT[beat.accent]}>{beat.call}</span>
-                    </p>
-                  )}
+                  <span
+                    className={`mt-3 inline-block rounded-full border border-line px-3 py-1 font-mono text-caption uppercase tracking-widest ${ACCENT_TEXT[step.accent]}`}
+                  >
+                    {step.fact}
+                  </span>
                 </li>
               );
             })}

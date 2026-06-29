@@ -95,7 +95,7 @@ export function JourneySection() {
             of stopping at a hard edge. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(48rem_42rem_at_50%_58%,rgba(70,150,200,0.12),transparent_62%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(48rem_42rem_at_57%_58%,rgba(70,150,200,0.12),transparent_62%)]"
         />
         {/* The pinned diamond vault, full-bleed behind the editorial layer. Mounted
             only once the section nears the viewport (see `near`). */}
@@ -123,11 +123,11 @@ export function JourneySection() {
 
         <div className="relative h-full w-full px-6 pt-10 lg:px-12">
           <p className="font-mono text-caption uppercase tracking-widest text-mist">
-            The ritual <span className="text-data">//</span> Trust, made visible
+            The ritual <span className="text-data">·</span> Trust, made visible
           </p>
           {/* Captions hug the left edge, above the lowered gem, so the copy reads
               easily and never sits across the centre of the diamond. */}
-          <div className="absolute left-9 top-24 max-w-md lg:left-16 lg:top-28">
+          <div className="absolute left-12 top-24 max-w-md lg:left-24 lg:top-28">
             <JourneyCaptions active={active} />
           </div>
         </div>
@@ -143,7 +143,7 @@ function ReducedLayout() {
     <section aria-label="How the vault works" className="bg-void py-20">
       <div className="mx-auto max-w-6xl px-6">
         <p className="font-mono text-caption uppercase tracking-widest text-mist">
-          The ritual <span className="text-data">//</span> Trust, made visible
+          The ritual <span className="text-data">·</span> Trust, made visible
         </p>
         <div className="mt-14 flex flex-col gap-10">
           {BEATS.map((beat) => (

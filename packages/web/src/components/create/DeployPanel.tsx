@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { parseUnits } from 'viem';
 import { EXPLORER_URL } from '@/lib/config';
+import { USDC_DECIMALS } from '@/lib/config';
 import {
   useDeployCampaign,
   type DeployParams,
@@ -30,7 +32,9 @@ function toCreatePayload(
     title: draft.title,
     summary: draft.summary,
     image: draft.image,
-    raiseTarget: draft.raiseTarget,
+    // Stored as raw 6-decimal USDC (the on-chain money unit the rest of the app
+    // reads), so the founder's dollar input "1" persists as "1000000".
+    raiseTarget: parseUnits(draft.raiseTarget || '0', USDC_DECIMALS).toString(),
     fundingDeadline: Number(params.fundingDeadline),
     milestones: draft.milestones.map((m, i) => ({
       pctBps: m.pctBps,

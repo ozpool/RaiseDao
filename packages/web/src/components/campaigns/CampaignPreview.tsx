@@ -31,7 +31,7 @@ export function CampaignPreview({ c }: { c: CampaignSummary }) {
         day: 'numeric',
         year: 'numeric',
       })
-    : '—';
+    : 'Not set';
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-panel/60">
@@ -43,7 +43,9 @@ export function CampaignPreview({ c }: { c: CampaignSummary }) {
         aria-hidden
       >
         {c.image && (
-          <>            <img src={c.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <>
+            {' '}
+            <img src={c.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
             <span className="absolute inset-0 bg-[linear-gradient(to_top,rgba(10,11,14,0.85),transparent_70%)]" />
           </>
         )}
@@ -83,7 +85,7 @@ export function CampaignPreview({ c }: { c: CampaignSummary }) {
 
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
           <Stat label="Milestones" value={String(c.milestoneCount)} />
-          <Stat label="Location" value={c.city || '—'} />
+          <Stat label="Location" value={c.city || 'Not set'} />
           <Stat label="Closes" value={deadline} />
         </div>
 

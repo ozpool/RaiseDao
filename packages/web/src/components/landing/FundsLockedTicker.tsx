@@ -45,7 +45,7 @@ export function FundsLockedTicker() {
           </p>
         </div>
         <span className="self-start border border-dashed border-mist px-2 py-0.5 font-mono text-caption uppercase tracking-wide text-mist sm:self-end">
-          Demo data — live at launch
+          Demo data, live at launch
         </span>
       </div>
     </section>

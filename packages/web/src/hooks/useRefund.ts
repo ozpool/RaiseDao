@@ -1,8 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import {
+  useAccount,
+  usePublicClient,
+  useReadContract,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from 'wagmi';
 import { raiseVaultAbi } from '@/lib/abi';
+import { txOverrides } from '@/lib/gas';
 
 export interface UseRefund {
   /** A milestone has failed; pro-rata refunds are claimable. */
@@ -30,6 +37,7 @@ export interface UseRefund {
  *  escape hatch anyone can trigger once a milestone deadline lapses). */
 export function useRefund(vault: `0x${string}`): UseRefund {
   const { address } = useAccount();
+  const publicClient = usePublicClient();
   const enabled = Boolean(address);
 
   const refundsOpenQ = useReadContract({
@@ -82,10 +90,27 @@ export function useRefund(vault: `0x${string}`): UseRefund {
     }
   }, [failR.isSuccess, refundsOpenQ, refundPoolQ]);
 
-  const claim = () =>
-    claimW.writeContract({ address: vault, abi: raiseVaultAbi, functionName: 'claimRefund' });
-  const forceFail = () =>
-    failW.writeContract({ address: vault, abi: raiseVaultAbi, functionName: 'forceFail' });
+  const claim = async () => {
+    const fees = await txOverrides(publicClient, address, {
+      address: vault,
+      abi: raiseVaultAbi,
+      functionName: 'claimRefund',
+    });
+    claimW.writeContract({
+      address: vault,
+      abi: raiseVaultAbi,
+      functionName: 'claimRefund',
+      ...fees,
+    });
+  };
+  const forceFail = async () => {
+    const fees = await txOverrides(publicClient, address, {
+      address: vault,
+      abi: raiseVaultAbi,
+      functionName: 'forceFail',
+    });
+    failW.writeContract({ address: vault, abi: raiseVaultAbi, functionName: 'forceFail', ...fees });
+  };
 
   const refundPool = refundPoolQ.data ?? 0n;
   const totalRaised = totalRaisedQ.data ?? 0n;

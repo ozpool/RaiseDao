@@ -23,7 +23,7 @@ const PATHS: Path[] = [
     title: 'Raise without ever holding the money.',
     steps: [
       'Deploy a vault and define your milestones.',
-      'Backers fund it in USDC — straight into the contract.',
+      'Backers fund it in USDC, straight into the contract.',
       'Hit a milestone, then request its release.',
       'The vote passes and your tranche unlocks automatically.',
     ],
@@ -56,7 +56,7 @@ export function DualPath() {
       <div className="mx-auto max-w-6xl px-6">
         <Reveal>
           <p className="font-mono text-caption uppercase tracking-widest text-mist">
-            Two sides <span className="text-data">//</span> one contract
+            Two sides <span className="text-data">·</span> one contract
           </p>
           <h2 className="mt-4 max-w-2xl font-display text-h1 font-semibold leading-[1.05] tracking-tight text-paper">
             Whether you raise or back, the rules are identical.

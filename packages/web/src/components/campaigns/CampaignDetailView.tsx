@@ -5,7 +5,7 @@ import { EXPLORER_URL } from '@/lib/config';
 import { useCampaign } from '@/hooks/useCampaign';
 import type { CampaignMilestone } from '@/lib/api';
 import { coverFor } from '@/lib/cover';
-import { fmtDollars } from '@/lib/format';
+import { fmtUSDC } from '@/lib/format';
 import { FundingBar } from './FundingBar';
 import { FundingGem } from './FundingGem';
 import { ContributePanel } from './ContributePanel';
@@ -144,7 +144,7 @@ export function CampaignDetailView({ vault }: { vault: string }) {
         <div className="relative p-8 lg:p-10">
           <div className="flex flex-wrap items-center gap-2 font-mono text-caption uppercase tracking-widest text-mist">
             <span>{c.category || 'Campaign'}</span>
-            <span>· {c.city || '—'}</span>
+            {c.city && <span>· {c.city}</span>}
             {c.verified && <span className="text-data">· Verified</span>}
             {c.demo && <span className="rounded-full border border-line px-2 py-0.5">Demo</span>}
           </div>
@@ -192,8 +192,8 @@ export function CampaignDetailView({ vault }: { vault: string }) {
             </div>
             <FundingGem raised={c.totalRaised} target={c.raiseTarget} status={c.status} />
             <div className="mt-2 flex items-baseline justify-between font-mono text-caption">
-              <span className="text-paper">{fmtDollars(Number(c.totalRaised))}</span>
-              <span className="text-mist">of {fmtDollars(Number(c.raiseTarget))}</span>
+              <span className="text-paper">{fmtUSDC(c.totalRaised)}</span>
+              <span className="text-mist">of {fmtUSDC(c.raiseTarget)}</span>
             </div>
           </div>
           <ContributePanel vault={c.vault as `0x${string}`} status={c.status} demo={c.demo} />

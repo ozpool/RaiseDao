@@ -19,7 +19,7 @@ const ITEMS: Guarantee[] = [
   {
     label: 'Custody',
     title: 'Every campaign gets its own vault.',
-    body: 'Funds are never pooled with other raises or held by the platform. Each campaign deploys a dedicated contract, and the money lives there — not in a founder’s wallet.',
+    body: 'Funds are never pooled with other raises or held by the platform. Each campaign deploys a dedicated contract, and the money lives there, not in a founder’s wallet.',
     call: 'RaiseFactory.deploy()',
     bar: 'bg-data',
     accent: 'text-data',
@@ -28,7 +28,7 @@ const ITEMS: Guarantee[] = [
   {
     label: 'Lock',
     title: 'Raised funds can’t be withdrawn at will.',
-    body: 'Once a campaign funds, no one — not the founder, not us — can pull the money out. The contract releases it only when a milestone vote passes.',
+    body: 'Once a campaign funds, no one can pull the money out, not the founder and not us. The contract releases it only when a milestone vote passes.',
     call: 'onlyGovernor',
     bar: 'bg-data',
     accent: 'text-data',
@@ -46,7 +46,7 @@ const ITEMS: Guarantee[] = [
   {
     label: 'Refunds',
     title: 'Failure returns money, pro-rata.',
-    body: 'If a milestone fails, every backer can reclaim their share automatically. The platform has no power to block it — the refund path is the same code as the release path.',
+    body: 'If a milestone fails, every backer can reclaim their share automatically. The platform has no power to block it. The refund path is the same code as the release path.',
     call: 'RaiseVault.claimRefund()',
     bar: 'bg-gold-unlock',
     accent: 'text-gold-unlock',
@@ -59,7 +59,7 @@ export function Guarantees() {
     <section className="relative py-24 lg:py-32" aria-label="The guarantees">
       <div className="mx-auto max-w-6xl px-6">
         <p className="font-mono text-caption uppercase tracking-widest text-mist">
-          Why it’s safe <span className="text-data">//</span> four guarantees
+          Why it’s safe <span className="text-data">·</span> four guarantees
         </p>
         <h2 className="mt-4 max-w-2xl font-display text-h1 font-semibold leading-[1.05] tracking-tight text-paper">
           Trust isn’t a promise here. It’s enforced by code.
@@ -78,10 +78,6 @@ export function Guarantees() {
                     {g.title}
                   </h3>
                   <p className="mt-3 font-sans text-body leading-relaxed text-mist">{g.body}</p>
-                  <p className="mt-4 font-mono text-caption tracking-tight text-mist/60">
-                    <span className="text-mist/40">{'// '}</span>
-                    <span className={g.accent}>{g.call}</span>
-                  </p>
                 </div>
               </SpotlightCard>
             </Reveal>

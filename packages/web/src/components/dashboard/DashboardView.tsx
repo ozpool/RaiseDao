@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { AuthGate } from '@/components/auth/AuthGate';
 import { FounderDashboard } from './FounderDashboard';
 import { InvestorDashboard } from './InvestorDashboard';
@@ -21,11 +22,20 @@ export function DashboardView() {
   return (
     <AuthGate>
       <div className="mx-auto max-w-4xl space-y-8 px-6 py-16">
-        <div>
-          <h1 className="font-display text-h1 font-semibold tracking-tight text-paper">
-            Dashboard
-          </h1>
-          <p className="mt-2 font-sans text-small text-mist">Your activity on-chain and off.</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="font-display text-h1 font-semibold tracking-tight text-paper">
+              Dashboard
+            </h1>
+            <p className="mt-2 font-sans text-small text-mist">Your activity on-chain and off.</p>
+          </div>
+          {/* Docs: the RaiseDAO white paper, how the protocol works end to end. */}
+          <Link
+            href="/docs"
+            className="shrink-0 rounded-full border border-line px-4 py-2 font-mono text-caption uppercase tracking-widest text-mist transition-colors hover:border-data hover:text-data"
+          >
+            Docs
+          </Link>
         </div>
 
         {/* Pill tab switcher — matches the segmented control pattern from the lab. */}

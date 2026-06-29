@@ -1,8 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import {
+  useAccount,
+  usePublicClient,
+  useReadContract,
+  useWaitForTransactionReceipt,
+  useWriteContract,
+} from 'wagmi';
 import { milestoneGovernorAbi } from '@/lib/abi';
+import { txOverrides } from '@/lib/gas';
 
 /** OZ Governor ProposalState. We only branch on a few, but name them all so the
  *  UI reads clearly. The chain is the source of truth for the timing guards:
@@ -46,6 +53,7 @@ export interface UseBallot {
  *  reads when a live socket event lands (a new vote, a queue). */
 export function useBallot(governor: `0x${string}`, proposalId: string, refreshKey = 0): UseBallot {
   const { address } = useAccount();
+  const publicClient = usePublicClient();
   const id = BigInt(proposalId);
 
   const stateQ = useReadContract({
@@ -102,13 +110,21 @@ export function useBallot(governor: `0x${string}`, proposalId: string, refreshKe
     }
   }, [receipt.isSuccess, refreshKey, votedQ, stateQ, etaQ]);
 
-  const vote = (support: number) =>
-    write.writeContract({
+  const vote = async (support: number) => {
+    const fees = await txOverrides(publicClient, address, {
       address: governor,
       abi: milestoneGovernorAbi,
       functionName: 'castVote',
       args: [id, support],
     });
+    write.writeContract({
+      address: governor,
+      abi: milestoneGovernorAbi,
+      functionName: 'castVote',
+      args: [id, support],
+      ...fees,
+    });
+  };
 
   return {
     state: stateQ.data as number | undefined,

@@ -7,10 +7,12 @@ import type { CampaignFilters as Filters, CampaignSummary } from '@/lib/api';
 import { CampaignFilters } from './CampaignFilters';
 import { CampaignPreview } from './CampaignPreview';
 import { coverFor } from '@/lib/cover';
+import { toUSDCNum } from '@/lib/format';
 
 function pctOf(c: CampaignSummary): number {
-  const t = Number(c.raiseTarget);
-  return t > 0 ? Math.min(100, Math.round((Number(c.totalRaised) / t) * 100)) : 0;
+  // No 100% clamp: a vault can be funded past its target, and the list should say so.
+  const t = toUSDCNum(c.raiseTarget);
+  return t > 0 ? Math.round((toUSDCNum(c.totalRaised) / t) * 100) : 0;
 }
 
 function Row({
@@ -39,7 +41,8 @@ function Row({
         style={{ background: cover.background }}
         aria-hidden
       >
-        {c.image && (          <img src={c.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        {c.image && (
+          <img src={c.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
         )}
         <span
           className="absolute bottom-1.5 left-1.5 h-3 w-3 rotate-45 rounded-[2px]"

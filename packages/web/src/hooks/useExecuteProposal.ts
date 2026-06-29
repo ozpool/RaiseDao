@@ -1,8 +1,9 @@
 'use client';
 
-import { useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
+import { useAccount, usePublicClient, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
 import { milestoneGovernorAbi } from '@/lib/abi';
 import { buildExecuteArgs } from '@/lib/proposal';
+import { txOverrides } from '@/lib/gas';
 
 /** What the execute/release panel consumes. Annotated explicitly so inferred
  *  wagmi error types don't escape as un-nameable paths (TS2742). */
@@ -39,37 +40,52 @@ export function useExecuteProposal({
   // Deterministic args derived from stored proposal fields — same encoding the
   // governor hashed at propose-time, so queue/execute don't revert.
   const args = buildExecuteArgs(vault, milestoneIndex, description);
+  const { address } = useAccount();
+  const publicClient = usePublicClient();
 
   const queueW = useWriteContract();
   const executeW = useWriteContract();
   const queueR = useWaitForTransactionReceipt({ hash: queueW.data });
   const executeR = useWaitForTransactionReceipt({ hash: executeW.data });
 
-  const queue = () =>
+  const callArgs = [
+    args.targets as `0x${string}`[],
+    args.values as bigint[],
+    args.calldatas as `0x${string}`[],
+    args.descriptionHash,
+  ] as const;
+
+  const queue = async () => {
+    const fees = await txOverrides(publicClient, address, {
+      address: governor,
+      abi: milestoneGovernorAbi,
+      functionName: 'queue',
+      args: callArgs,
+    });
     queueW.writeContract({
       address: governor,
       abi: milestoneGovernorAbi,
       functionName: 'queue',
-      args: [
-        args.targets as `0x${string}`[],
-        args.values as bigint[],
-        args.calldatas as `0x${string}`[],
-        args.descriptionHash,
-      ],
+      args: callArgs,
+      ...fees,
     });
+  };
 
-  const execute = () =>
+  const execute = async () => {
+    const fees = await txOverrides(publicClient, address, {
+      address: governor,
+      abi: milestoneGovernorAbi,
+      functionName: 'execute',
+      args: callArgs,
+    });
     executeW.writeContract({
       address: governor,
       abi: milestoneGovernorAbi,
       functionName: 'execute',
-      args: [
-        args.targets as `0x${string}`[],
-        args.values as bigint[],
-        args.calldatas as `0x${string}`[],
-        args.descriptionHash,
-      ],
+      args: callArgs,
+      ...fees,
     });
+  };
 
   return {
     queue,
