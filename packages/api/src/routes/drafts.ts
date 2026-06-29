@@ -9,6 +9,7 @@ const createBody = z
   .object({
     title: z.string().min(1).max(120),
     summary: z.string().max(2000).default(''),
+    image: z.string().max(2048).default(''),
     raiseTarget: decimal,
     fundingDurationDays: z.coerce.number().int().min(1).max(365),
     tokenName: z.string().min(1).max(60),

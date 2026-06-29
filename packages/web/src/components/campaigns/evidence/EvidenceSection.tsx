@@ -1,11 +1,14 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { useAccount } from 'wagmi';
 import type { CampaignMilestone } from '@/lib/api';
 import { useEvidence, groupByMilestone } from '@/hooks/useEvidence';
 import { useCampaignLive } from '@/hooks/useCampaignLive';
+import { evidenceKind } from '@/lib/ipfs';
 import { EvidenceItem } from './EvidenceItem';
 import { EvidenceUpload } from './EvidenceUpload';
+import { EvidenceLightbox } from './EvidenceLightbox';
 import { MilestoneGovernance } from '../governance/MilestoneGovernance';
 
 /** The campaign detail page's evidence + governance block: every milestone with
@@ -31,6 +34,17 @@ export function EvidenceSection({
   const isFounder = Boolean(address && address.toLowerCase() === founder.toLowerCase());
   const byMilestone = groupByMilestone(records);
 
+  // A flat gallery of the viewable media (image/video) across every milestone, so
+  // the lightbox can step through all the proof. Keyed by cid for the open lookup.
+  const gallery = useMemo(
+    () =>
+      (records ?? []).filter(
+        (r) => evidenceKind(r.filename) === 'image' || evidenceKind(r.filename) === 'video',
+      ),
+    [records],
+  );
+  const [lightbox, setLightbox] = useState<number | null>(null);
+
   return (
     <section>
       <h2 className="mb-3 mt-10 font-mono text-caption uppercase tracking-widest text-mist">
@@ -52,9 +66,16 @@ export function EvidenceSection({
                 <p className="mt-3 font-sans text-small text-mist">No evidence submitted yet.</p>
               ) : (
                 <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                  {items.map((record) => (
-                    <EvidenceItem key={record.cid} record={record} />
-                  ))}
+                  {items.map((record) => {
+                    const gi = gallery.findIndex((g) => g.cid === record.cid);
+                    return (
+                      <EvidenceItem
+                        key={record.cid}
+                        record={record}
+                        onOpen={gi >= 0 ? () => setLightbox(gi) : undefined}
+                      />
+                    );
+                  })}
                 </div>
               )}
 
@@ -74,6 +95,15 @@ export function EvidenceSection({
           );
         })}
       </div>
+
+      {lightbox !== null && (
+        <EvidenceLightbox
+          records={gallery}
+          index={lightbox}
+          onClose={() => setLightbox(null)}
+          onIndex={setLightbox}
+        />
+      )}
     </section>
   );
 }

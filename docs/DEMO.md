@@ -60,14 +60,14 @@ The **Contribute** panel runs the standard two-step ERC-20 flow:
 Each contribution updates the funding bar live over Socket.IO (when the indexer is
 running). Demo/sample campaigns disable contributions on purpose.
 
-> **Honest gap — activating voting power.** GovToken is `ERC20Votes`: holding it is
-> not enough; an investor must `delegate(self)` for their balance to count at a
-> proposal's snapshot, and the vault does **not** auto-delegate on mint. The web
-> has **no delegate button yet**, so to vote in this demo you currently call
-> `GovToken.delegate(yourAddress)` directly (e.g. via Arbiscan's "Write Contract"
-> on the campaign's token address) **before** a proposal's snapshot block. Without
-> delegating, the ballot correctly reports zero weight ("you held no governance
-> tokens at the snapshot").
+> **Activating voting power.** GovToken is `ERC20Votes`: holding it is not enough;
+> an investor must `delegate(self)` for their balance to count at a proposal's
+> snapshot, and the vault does **not** auto-delegate on mint. The campaign page
+> handles this — the **Activate voting power** card (`ActivateVoting`) surfaces
+> automatically for any connected wallet that holds tokens but hasn't delegated,
+> and a one-time transaction self-delegates. Do this **before** a proposal's
+> snapshot block; without it the ballot correctly reports zero weight ("you held
+> no governance tokens at the snapshot").
 
 ## 3. Pass a milestone vote — `/campaigns/<vault>`
 
@@ -85,11 +85,11 @@ Per milestone the page renders the governance panel (`MilestoneGovernance`):
    live over the socket.
 4. **Queue + execute** — after the voting period, a passing proposal is queued and,
    once the **2-day timelock** elapses (the `TimelockRing` counts it down), executed.
-   These calls are **permissionless** — anyone can trigger them — so the app shows
-   the timelock state but does **not** ship a dedicated queue/execute button; in the
-   demo you call `queue(...)` / `execute(...)` on the governor directly (Arbiscan or
-   a script). Execution runs `vault.releaseMilestone(id)`, sending that slice
-   (minus the protocol fee) to the founder.
+   The page drives both steps (`ExecutePanel`): a **Queue release** button appears
+   once the vote has `Succeeded`, then an **Execute release** button once the
+   timelock eta passes. Both calls are **permissionless** — anyone can trigger them,
+   not just the founder. Execution runs `vault.releaseMilestone(id)`, sending that
+   slice (minus the protocol fee) to the founder.
 
 Governor timing for context: **1-day** voting delay, **3-day** voting period,
 **2-day** execution timelock.
@@ -108,17 +108,19 @@ Two ways funds become refundable:
 Either way, an investor reclaims their share with `vault.claimRefund()` — pro-rata
 of the remaining USDC, burning the caller's GovToken shares.
 
-> **Honest gap — refund-claim UI (issue #34).** The contract path
-> (`markFailed`, `forceFail`, `claimRefund`) exists and is tested, but the
-> **dedicated claim UI lands in issue #34**. Until then, exercise the refund path
-> by calling `forceFail()` / `claimRefund()` on the vault directly (Arbiscan or a
-> script). The `/account` page is where claimed/refundable positions will surface.
+Both paths are wired into the campaign page (`RefundPanel`). When a milestone's
+deadline lapses without a release, a **Force-fail & unlock refunds** button appears
+(permissionless, anyone may call it). Once refunds are open, contributors see a
+**Claim refund** button showing their pro-rata share. The panel self-hides unless
+an action is available to the connected wallet.
 
 ## What this demo proves vs. doesn't
 
 It proves the load-bearing claims: custody no founder controls, milestone-gated
 release through a timelock, soulbound token-weighted voting, permissionless escape
-hatches, and a live indexed UI — all on free tiers. It does **not** enforce KYC,
-geofencing, gasless UX, fiat on-ramp, or multisig admin (see the README's _Known
-Scope Boundaries_), and two convenience UIs — delegate and refund-claim — are not
-yet wired even though their on-chain paths are.
+hatches, and a live indexed UI — all on free tiers. The full lifecycle is wired
+end-to-end in the app: launch, fund, activate voting, propose, vote, queue,
+execute, and refund each have a UI; no step requires Arbiscan. It does **not**
+enforce KYC, geofencing, gasless UX, fiat on-ramp, or multisig admin (see the
+README's _Known Scope Boundaries_) — those remain documented patterns, not
+enforced features.

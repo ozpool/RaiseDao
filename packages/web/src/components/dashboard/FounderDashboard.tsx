@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { EXPLORER_URL } from '@/lib/config';
 import { useFounderDashboard } from '@/hooks/useDashboard';
-import { fmtUSDC } from '@/lib/format';
+import { fmtDollars, toUSDCNum } from '@/lib/format';
 import { StatCard } from './StatCard';
 import { EmptyState } from './EmptyState';
 import { FounderRaiseChart } from './FounderRaiseChart';
@@ -38,7 +38,12 @@ export function FounderDashboard() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <StatCard label="Total raised" value={fmtUSDC(totalRaised.toString())} accent="data" />
+        <StatCard
+          label="Total raised"
+          count={toUSDCNum(totalRaised.toString())}
+          format={fmtDollars}
+          accent="data"
+        />
         <StatCard label="Contributors" value={totalContributors} />
         <StatCard label="Milestones released" value={totalReleased} accent="gold" />
       </div>

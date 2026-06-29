@@ -2,6 +2,7 @@
 
 import { AuthGate } from '@/components/auth/AuthGate';
 import { useAdminCampaigns, useIsAdmin } from '@/hooks/useAdmin';
+import { StatCard } from '@/components/dashboard/StatCard';
 import { AdminCampaignRow } from './AdminCampaignRow';
 import { AuditTrail } from './AuditTrail';
 
@@ -26,14 +27,27 @@ function Body() {
     return <p className="font-sans text-small text-signal">Could not load campaigns.</p>;
   }
 
+  const list = campaigns ?? [];
+  const high = list.filter((c) => c.risk.level === 'high').length;
+  const medium = list.filter((c) => c.risk.level === 'medium').length;
+  const hidden = list.filter((c) => c.hidden).length;
+
   return (
     <div className="space-y-8">
+      {/* Triage at a glance — the queue's shape before you read a single row. */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <StatCard label="Campaigns" value={list.length} />
+        <StatCard label="High risk" value={high} accent="signal" />
+        <StatCard label="Medium risk" value={medium} accent="data" />
+        <StatCard label="Hidden" value={hidden} accent="gold" />
+      </div>
+
       <section className="space-y-3">
         <h2 className="font-mono text-caption uppercase tracking-widest text-mist">
           Campaigns by risk
         </h2>
         <div className="space-y-3">
-          {(campaigns ?? []).map((c) => (
+          {list.map((c) => (
             <AdminCampaignRow key={c.vault} c={c} />
           ))}
         </div>
@@ -51,7 +65,7 @@ export function AdminView() {
 
   return (
     <AuthGate>
-      <div className="mx-auto max-w-4xl space-y-8 px-6 py-16">
+      <div className="mx-auto max-w-5xl space-y-8 px-6 py-16">
         <div>
           <h1 className="font-display text-h1 font-semibold tracking-tight text-paper">
             Moderation

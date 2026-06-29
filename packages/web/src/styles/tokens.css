@@ -13,6 +13,7 @@
   --color-mist: #8a8f9c; /* secondary text */
   --color-signal: #4f7cff; /* the one live / actionable accent */
   --color-data: #38e0d8; /* cyan — data / funding glow, used sparingly */
+  --color-vote: #c863f0; /* magenta — governance / voting tension (the journey) */
   --color-gold-unlock: #e8b86d; /* ONLY fund-release / milestone-unlock */
 
   /* Type families — bound to the next/font CSS variables set on <html> */

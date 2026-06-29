@@ -24,6 +24,13 @@ export function BasicsStep({ data, update }: StepProps) {
         onChange={(v) => update({ summary: v })}
         placeholder="One or two sentences on what you're raising for and why it matters."
       />
+      <Field
+        label="Cover image URL"
+        value={data.image}
+        onChange={(v) => update({ image: v })}
+        placeholder="https://…/cover.jpg"
+        hint="Optional. A direct link to a cover image — shown on the campaign card and page. Leave blank for the generated gradient cover."
+      />
     </div>
   );
 }

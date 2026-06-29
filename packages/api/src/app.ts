@@ -62,6 +62,21 @@ export function createApp(deps: AppDeps = {}): Express {
   const verifyFounder = deps.campaignFounderVerifier ?? ethersFounderVerifier(config.RPC_URL);
   const app = express();
 
+  // CORS: the browser blocks cross-origin API calls (web on :3000 → api on :4000)
+  // without these headers, which silently breaks SIWE sign-in and data loads.
+  // Scoped to the configured web origin; bearer-token auth needs no credentials.
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', config.SIWE_URI);
+    res.header('Vary', 'Origin');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
+
   app.use(pinoHttp({ logger }));
   app.use(express.json());
 

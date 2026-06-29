@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { EXPLORER_URL } from '@/lib/config';
 import { useInvestorDashboard } from '@/hooks/useDashboard';
-import { fmtUSDC, fmtGov } from '@/lib/format';
+import { fmtUSDC, fmtGov, fmtDollars, toUSDCNum } from '@/lib/format';
 import { StatCard } from './StatCard';
 import { EmptyState } from './EmptyState';
 import { InvestorContribChart } from './InvestorContribChart';
@@ -38,7 +38,8 @@ export function InvestorDashboard() {
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <StatCard
           label="Total contributed"
-          value={fmtUSDC(totalContrib.toString())}
+          count={toUSDCNum(totalContrib.toString())}
+          format={fmtDollars}
           accent="signal"
         />
         <StatCard

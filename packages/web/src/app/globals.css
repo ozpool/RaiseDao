@@ -43,6 +43,84 @@ html.lenis body {
   }
 }
 
+/* Site atmosphere — one continuous dark field behind every section so the page
+   reads as a single space, not stacked black boxes. Cyberpunk panels parallax in
+   JS (SiteAtmosphere); here we add the slow scanline + grain that keep the field
+   filmic. Both auto-still under prefers-reduced-motion via the net above. */
+.atmo-scan {
+  position: absolute;
+  inset: -20% 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(63, 233, 224, 0.05) 48%,
+    rgba(63, 233, 224, 0.07) 50%,
+    rgba(63, 233, 224, 0.05) 52%,
+    transparent 100%
+  );
+  height: 22%;
+  opacity: 0.6;
+  pointer-events: none;
+  animation: atmo-scan 9s linear infinite;
+}
+@keyframes atmo-scan {
+  from {
+    transform: translateY(-30vh);
+  }
+  to {
+    transform: translateY(130vh);
+  }
+}
+.atmo-grain {
+  position: absolute;
+  inset: -25%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* Route entrance: each page fades and lifts in on navigation (PageTransition
+   re-keys on the pathname to replay this). Stilled under reduced motion. */
+.page-enter {
+  animation: page-enter 0.45s ease both;
+}
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Scroll-reveal: elements start blurred + lowered and settle when they enter the
+   viewport (a .is-in class is toggled by an IntersectionObserver). Guarded by the
+   reduced-motion net above, which collapses the transition to nothing. */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  filter: blur(6px);
+  transition:
+    opacity 0.8s ease,
+    transform 0.8s ease,
+    filter 0.8s ease;
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
 /* Keyboard focus is always visible (WCAG 2.4.7). Pointer clicks stay clean via
    :focus-visible, so this only shows for keyboard/AT users. */
 :focus-visible {

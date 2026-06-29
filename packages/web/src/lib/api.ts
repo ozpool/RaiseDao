@@ -188,6 +188,7 @@ export interface CampaignSummary {
   status: string;
   title: string;
   summary: string;
+  image?: string;
   city: string;
   category: string;
   verified: boolean;
@@ -224,6 +225,7 @@ export interface CampaignCreatePayload {
   governor: string;
   title: string;
   summary: string;
+  image?: string;
   raiseTarget: string;
   fundingDeadline: number;
   milestones: { pctBps: number; deadline: number }[];
@@ -311,6 +313,7 @@ export interface EvidenceUploadInput {
 export interface DraftPayload {
   title: string;
   summary: string;
+  image: string;
   raiseTarget: string;
   fundingDurationDays: number;
   tokenName: string;

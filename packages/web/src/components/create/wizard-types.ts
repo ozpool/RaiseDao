@@ -10,6 +10,7 @@ export interface WizardMilestone {
 export interface WizardData {
   title: string;
   summary: string;
+  image: string;
   raiseTarget: string;
   fundingDurationDays: string;
   tokenName: string;
@@ -21,6 +22,7 @@ export interface WizardData {
 export const INITIAL_DATA: WizardData = {
   title: '',
   summary: '',
+  image: '',
   raiseTarget: '',
   fundingDurationDays: '30',
   tokenName: '',
@@ -66,6 +68,7 @@ export function toDraftPayload(d: WizardData) {
   return {
     title: d.title.trim(),
     summary: d.summary.trim(),
+    image: d.image.trim(),
     raiseTarget: d.raiseTarget.trim(),
     fundingDurationDays: Number(d.fundingDurationDays),
     tokenName: d.tokenName.trim(),

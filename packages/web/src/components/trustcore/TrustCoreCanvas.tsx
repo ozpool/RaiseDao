@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Bloom, EffectComposer } from '@react-three/postprocessing';
+import { preserveContext } from '@/lib/preserveContext';
 import { TrustCore } from './TrustCore';
 
 export interface TrustCoreCanvasProps {
@@ -38,14 +39,16 @@ export function TrustCoreCanvas({ reducedMotion = false }: TrustCoreCanvasProps)
       <Canvas
         dpr={mobile ? [1, 1.5] : [1, 1.75]}
         frameloop={animate ? 'always' : 'demand'}
-        camera={{ position: [7.2, 5.7, 7.2], fov: 36 }}
+        camera={{ position: [7.4, 5.85, 7.4], fov: 36 }}
+        onCreated={preserveContext}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         style={{ width: '100%', height: '100%', display: 'block' }}
         role="img"
         aria-label="The Vault core — a cluster of cubes representing escrowed funds"
       >
-        {/* Void-coloured fog seats the cluster in depth — far cubes fade out. */}
-        <fog attach="fog" args={['#0A0B0E', 7.5, 17]} />
+        {/* Void-coloured fog seats the cluster in depth — far cubes fade out. A
+            slightly tighter range deepens the front-to-back falloff. */}
+        <fog attach="fog" args={['#0A0B0E', 8, 16]} />
         {/* Hemisphere lifts the top (cyan sky) and underside (magenta ground) so the
             cube reads from every angle, and tints it to the theme. */}
         <hemisphereLight args={['#7fe9ff', '#2a1840', 1.0]} />
