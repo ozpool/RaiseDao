@@ -1,6 +1,6 @@
 'use client';
 
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -8,15 +8,19 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { BEATS, ACCENT_TEXT } from './beats';
 import { JourneyCaptions } from './JourneyCaptions';
 import { JourneyRail } from './JourneyRail';
+import { useJourneyStore } from './useJourneyStore';
+import { activeBeat } from './journey-morph';
+import { CanvasLoader } from '@/components/sections/CanvasLoader';
 
 // 3D loads after paint, never during SSR (R3F + WebGL are client-only).
 const VaultGemCanvas = dynamic(
   () => import('@/components/journey/VaultGemCanvas').then((m) => m.VaultGemCanvas),
-  { ssr: false, loading: () => <div className="h-full w-full bg-void" aria-hidden /> },
+  { ssr: false, loading: () => <CanvasLoader /> },
 );
 
-// 6 beats × ~135vh of scroll each = an unhurried, smooth read of the ritual.
-const SECTION_HEIGHT = '800vh';
+// 6 beats over a long scroll — unhurried, Apple-style holds where each beat
+// reaches its state and sits a while before the next begins.
+const SECTION_HEIGHT = '1320vh';
 
 /** The cinematic finale: one pinned Trust Core, the six-beat story scrubbed by
  *  scroll. Stage 1 wires the pin, the beat captions and the progress rail; the
@@ -28,6 +32,32 @@ export function JourneySection() {
   const reduced = useReducedMotion();
   const [progress, setProgress] = useState(0);
   const [active, setActive] = useState(0);
+  // Defer the (heavy) gem canvas until the section is near the viewport, so on
+  // first page load only the hero's WebGL context spins up — not both at once,
+  // which was the cold-start stutter.
+  const [near, setNear] = useState(false);
+
+  useEffect(() => {
+    if (near) return;
+    const el = sectionRef.current;
+    // Mount when the section approaches the viewport...
+    const io = el
+      ? new IntersectionObserver(
+          ([e]) => {
+            if (e?.isIntersecting) setNear(true);
+          },
+          { rootMargin: '100% 0px' },
+        )
+      : null;
+    io?.observe(el!);
+    // ...and as a fallback, warm the canvas shortly after the hero settles, so the
+    // gem is already drawn by the time the visitor scrolls down to it.
+    const warm = setTimeout(() => setNear(true), 1800);
+    return () => {
+      io?.disconnect();
+      clearTimeout(warm);
+    };
+  }, [near]);
 
   useLayoutEffect(() => {
     if (reduced) return;
@@ -40,10 +70,13 @@ export function JourneySection() {
         trigger: sectionRef.current,
         start: 'top top',
         end: 'bottom bottom',
-        scrub: 1,
+        scrub: 1.4,
         onUpdate(self) {
+          // Transient write for the 3D scene (no React render); React state only
+          // for the captions/rail, which genuinely need to re-render.
+          useJourneyStore.getState().setProgress(self.progress);
           setProgress(self.progress);
-          setActive(Math.min(BEATS.length - 1, Math.floor(self.progress * BEATS.length)));
+          setActive(activeBeat(self.progress));
         },
       });
       ScrollTrigger.refresh();
@@ -56,24 +89,45 @@ export function JourneySection() {
 
   return (
     <section ref={sectionRef} style={{ height: SECTION_HEIGHT }} aria-label="How the vault works">
-      <div className="sticky top-0 h-screen overflow-hidden bg-void">
-        {/* The pinned diamond vault, full-bleed behind the editorial layer. */}
-        <div className="absolute inset-0">
-          <VaultGemCanvas reducedMotion={false} />
-        </div>
-        {/* Scrim so the lower-left captions stay legible over the core. */}
+      <div className="sticky top-0 h-screen overflow-hidden">
+        {/* A soft glow seated where the gem sits — the alpha canvas lets it show
+            through, so the diamond's light appears to bleed into the page instead
+            of stopping at a hard edge. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(10,11,14,0.92),transparent_55%),linear-gradient(to_right,rgba(10,11,14,0.6),transparent_45%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(48rem_42rem_at_50%_58%,rgba(70,150,200,0.12),transparent_62%)]"
+        />
+        {/* The pinned diamond vault, full-bleed behind the editorial layer. Mounted
+            only once the section nears the viewport (see `near`). */}
+        <div className="absolute inset-0">{near && <VaultGemCanvas reducedMotion={false} />}</div>
+        {/* Vignette — fades the lit canvas edges into the page void so the gem
+            reads as part of the black page, not a bright rectangle in its own
+            window. Plus a soft top-left wash to keep the upper captions legible. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(125%_115%_at_50%_45%,transparent_52%,rgba(10,11,14,0.85)_92%)]"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(10,11,14,0.78),transparent_42%),linear-gradient(to_right,rgba(10,11,14,0.55),transparent_40%)]"
+        />
+        {/* Bottom dissolve — the canvas fades fully to void at its lower edge so the
+            pinned journey melts into the section below instead of meeting it at a
+            hard line (no "two windows" seam). */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-[linear-gradient(to_bottom,transparent,var(--color-void))]"
         />
 
         <JourneyRail progress={progress} active={active} />
 
-        <div className="relative mx-auto h-full max-w-6xl px-6 pb-16 pt-10">
+        <div className="relative h-full w-full px-6 pt-10 lg:px-12">
           <p className="font-mono text-caption uppercase tracking-widest text-mist">
             The ritual <span className="text-data">//</span> Trust, made visible
           </p>
-          <div className="absolute inset-x-6 bottom-16 h-1/2">
+          {/* Captions hug the left edge, above the lowered gem, so the copy reads
+              easily and never sits across the centre of the diamond. */}
+          <div className="absolute left-9 top-24 max-w-md lg:left-16 lg:top-28">
             <JourneyCaptions active={active} />
           </div>
         </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { BEATS, ACCENT_BG } from './beats';
+import { BEAT_STARTS } from './journey-morph';
 
 /** A thin vertical scroll-progress rail down the right edge: a fill that tracks
  *  overall progress, a tick per beat that lights in its accent colour as it
@@ -21,7 +22,7 @@ export function JourneyRail({ progress, active }: { progress: number; active: nu
                 'absolute -left-[3px] block h-1.5 w-1.5 rounded-full transition-colors duration-300',
                 i <= active ? ACCENT_BG[beat.accent] : 'bg-line',
               ].join(' ')}
-              style={{ top: `${(i / (BEATS.length - 1)) * 100}%` }}
+              style={{ top: `${(BEAT_STARTS[i] ?? i / (BEATS.length - 1)) * 100}%` }}
             />
           ))}
         </div>
