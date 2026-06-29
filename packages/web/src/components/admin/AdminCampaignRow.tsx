@@ -3,20 +3,28 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import type { AdminCampaign } from '@/lib/api';
-import { useSetHidden } from '@/hooks/useAdmin';
+import { useSetHidden, useSetVerified } from '@/hooks/useAdmin';
 import { RiskBadge } from './RiskBadge';
 
 const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 
 /** One campaign row: identity, risk badge, the signals that drove the score, and
- *  the hide / un-hide control. Hiding asks for a reason (it's logged server-side). */
+ *  the moderation controls — grant/revoke the verified badge, and hide / un-hide.
+ *  Both actions ask for a reason and are logged server-side. */
 export function AdminCampaignRow({ c }: { c: AdminCampaign }) {
   const setHidden = useSetHidden();
+  const setVerified = useSetVerified();
   const [reason, setReason] = useState('');
 
   const toggle = () =>
     setHidden.mutate(
       { vault: c.vault, hidden: !c.hidden, reason: c.hidden ? '' : reason },
+      { onSuccess: () => setReason('') },
+    );
+
+  const toggleVerified = () =>
+    setVerified.mutate(
+      { vault: c.vault, verified: !c.verified, reason },
       { onSuccess: () => setReason('') },
     );
 
@@ -31,6 +39,11 @@ export function AdminCampaignRow({ c }: { c: AdminCampaign }) {
             >
               {c.title || 'Untitled campaign'}
             </Link>
+            {c.verified && (
+              <span className="rounded-full border border-data/40 px-2 py-0.5 font-mono text-caption uppercase tracking-widest text-data">
+                ✓ Verified
+              </span>
+            )}
             {c.hidden && (
               <span className="rounded-full border border-line px-2 py-0.5 font-mono text-caption uppercase tracking-widest text-mist">
                 Hidden
@@ -67,6 +80,18 @@ export function AdminCampaignRow({ c }: { c: AdminCampaign }) {
             className="flex-1 rounded-lg border border-line bg-void/40 px-3 py-1.5 font-sans text-caption text-paper outline-none transition-colors focus:border-data"
           />
         )}
+        <button
+          type="button"
+          onClick={toggleVerified}
+          disabled={setVerified.isPending}
+          className={`rounded-full border px-4 py-1.5 font-mono text-caption uppercase tracking-widest transition-colors disabled:opacity-40 ${
+            c.verified
+              ? 'border-line text-mist hover:text-paper'
+              : 'border-data/40 text-data hover:border-data'
+          }`}
+        >
+          {setVerified.isPending ? '…' : c.verified ? 'Un-verify' : 'Verify'}
+        </button>
         <button
           type="button"
           onClick={toggle}

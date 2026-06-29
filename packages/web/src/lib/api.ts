@@ -86,6 +86,13 @@ export const api = {
         body: { hidden, reason },
         token,
       }),
+    /** Grant or revoke a campaign's verified badge; logged server-side. */
+    setVerified: (vault: string, verified: boolean, reason: string, token: string) =>
+      apiFetch<{ campaign: AdminCampaign }>(`/admin/campaigns/${vault}/verify`, {
+        method: 'POST',
+        body: { verified, reason },
+        token,
+      }),
   },
   auth: {
     nonce: (address: string) =>

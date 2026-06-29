@@ -45,3 +45,23 @@ export function useSetHidden() {
     },
   });
 }
+
+/** Grant/revoke a campaign's verified badge, then refresh the list + audit. */
+export function useSetVerified() {
+  const token = useAuthStore((s) => s.token);
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      vault,
+      verified,
+      reason,
+    }: {
+      vault: string;
+      verified: boolean;
+      reason: string;
+    }) => api.admin.setVerified(vault, verified, reason, token!),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin'] });
+    },
+  });
+}
