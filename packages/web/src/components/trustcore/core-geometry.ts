@@ -43,7 +43,7 @@ export function buildCore(seed = 1337, { quality = 'high' }: CoreOptions = {}): 
   const low = quality === 'low';
   const N = low ? 4 : 5; // grid spans -N..N on each axis
   const bound = N + 0.6;
-  const spacing = 0.4; // a touch tighter so the whole core sits inside the frame
+  const spacing = 0.42; // slightly larger overall box
   const pos: number[] = [];
   const col: number[] = [];
   const scl: number[] = [];
@@ -75,15 +75,18 @@ export function buildCore(seed = 1337, { quality = 'high' }: CoreOptions = {}): 
     for (let y = -N; y <= N; y++) {
       for (let z = -N; z <= N; z++) {
         const rNorm = Math.hypot(x, y, z) / bound; // 0 centre → ~1 surface
-        // Superquadric (exponent 4) keeps cells inside a rounded cube.
+        // Superquadric (exponent 5) — flatter faces so it reads a touch more
+        // cube, while the dust shell still breaks up the corners and edges.
         const inside =
-          Math.abs(x / bound) ** 4 + Math.abs(y / bound) ** 4 + Math.abs(z / bound) ** 4 <= 1;
+          Math.abs(x / bound) ** 5 + Math.abs(y / bound) ** 5 + Math.abs(z / bound) ** 5 <= 1;
         if (!inside) continue;
-        // Porosity grows with radius: dense heart, airy crumbling shell.
-        if (rand() < 0.1 + 0.42 * rNorm * rNorm) continue;
+        // Porosity grows with radius: dense heart, airy crumbling shell. Eased a
+        // little so the body reads slightly more solid and cube-like.
+        if (rand() < 0.08 + 0.38 * rNorm * rNorm) continue;
 
-        // Big in the body (~0.3), small at the rim (~0.15), with jitter.
-        const size = (0.3 - 0.15 * rNorm) * (0.78 + rand() * 0.5);
+        // Bigger in the body (~0.34), small at the rim (~0.15), with jitter — the
+        // centre cubes read a touch chunkier without fattening the broken edge.
+        const size = (0.34 - 0.19 * rNorm) * (0.78 + rand() * 0.5);
         push(x * spacing, y * spacing, z * spacing, size, 0);
       }
     }

@@ -16,9 +16,9 @@ import { patchEmissive } from './core-material';
 import { useCorePointer } from './useCorePointer';
 
 // Geometry is a unit box; real edge length is set per-instance from data.scales.
-const SCATTER_RADIUS = 1.7; // cursor influence radius — wider so more motes react
-const SCATTER_PUSH = 0.9; // base push at the cursor's centre (scaled per cube below)
-const SPRING_TAU = 0.13; // spring time constant (s) for push-out / return
+const SCATTER_RADIUS = 1.8; // cursor influence radius — wider so more motes react
+const SCATTER_PUSH = 1.0; // base push at the cursor's centre (scaled per cube below)
+const SPRING_TAU = 0.11; // spring time constant (s) for push-out / return — snappier
 const IDLE_AMP = 0.02; // amplitude of the per-cube alive-at-rest drift
 const PARALLAX = 0.1; // subtle whole-core lean — only while the cursor is on the core
 // Smaller cubes (the dust shell) scatter far; the structural body barely shifts,
