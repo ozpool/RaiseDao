@@ -14,7 +14,7 @@ export function ClosingCta() {
       />
       <div className="relative mx-auto max-w-3xl px-6 text-center">
         <p className="font-mono text-caption uppercase tracking-widest text-mist">
-          Trust, made visible <span className="text-gold-unlock">//</span> now use it
+          Trust, made visible <span className="text-gold-unlock">·</span> now use it
         </p>
         <h2 className="mt-5 font-display text-hero font-semibold leading-[1.0] tracking-tight text-paper">
           Raise with proof.
@@ -22,8 +22,8 @@ export function ClosingCta() {
           Back without the leap of faith.
         </h2>
         <p className="mx-auto mt-7 max-w-xl font-sans text-body leading-relaxed text-mist">
-          Browse live campaigns, fund a milestone, or launch your own vault — every move on-chain,
-          every release earned by a vote.
+          Browse live campaigns, fund a milestone, or launch your own vault. Every move is on-chain,
+          and every release is earned by a vote.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
           <MagneticButton

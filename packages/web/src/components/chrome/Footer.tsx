@@ -34,6 +34,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Resources',
     links: [
+      { label: 'White paper', href: '/docs' },
       { label: 'GitHub ↗', href: REPO, external: true },
       { label: 'Architecture ↗', href: `${REPO}/blob/main/docs/ARCHITECTURE.md`, external: true },
       { label: 'Demo walkthrough ↗', href: `${REPO}/blob/main/docs/DEMO.md`, external: true },
@@ -90,7 +91,7 @@ export function Footer() {
       </div>
 
       <div className="mx-auto max-w-6xl px-6 py-8 font-mono text-caption text-mist">
-        <p>© 2026 RaiseDAO — milestone-gated crowdfunding. Testnet demo, not audited.</p>
+        <p>© 2026 RaiseDAO. Milestone-gated crowdfunding. Testnet build, not audited.</p>
       </div>
     </footer>
   );

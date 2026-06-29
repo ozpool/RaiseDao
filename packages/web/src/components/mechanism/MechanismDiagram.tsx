@@ -65,7 +65,7 @@ export function MechanismDiagram() {
           {/* Section header */}
           <div className="mb-10 shrink-0 lg:mb-12">
             <p className="font-mono text-caption uppercase tracking-widest text-mist">
-              The pipeline <span className="text-data">//</span> How it works
+              The pipeline <span className="text-data">·</span> How it works
             </p>
             <h2 className="mt-3 font-display text-h1 font-semibold leading-[1.1] tracking-tight text-paper">
               Five layers. <span className="text-mist">One contract of trust.</span>
@@ -150,7 +150,7 @@ function ReducedLayout() {
     <section aria-label="How RaiseDAO works" className="bg-void py-20">
       <div className="mx-auto max-w-6xl px-6">
         <p className="font-mono text-caption uppercase tracking-widest text-mist">
-          The pipeline <span className="text-data">//</span> How it works
+          The pipeline <span className="text-data">·</span> How it works
         </p>
         <h2 className="mt-3 font-display text-h1 font-semibold leading-[1.1] tracking-tight text-paper">
           Five layers. <span className="text-mist">One contract of trust.</span>

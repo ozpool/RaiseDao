@@ -29,7 +29,7 @@ export function Hero() {
       {/* Wordmark band — full-bleed, the type IS the composition. */}
       <div className="px-6 pt-12 lg:pt-20">
         <p className="font-mono text-caption uppercase tracking-[0.3em] text-mist">
-          Milestone-gated crowdfunding <span className="text-data">//</span> Arbitrum Sepolia
+          Milestone-gated crowdfunding <span className="text-data">·</span> Arbitrum Sepolia
         </p>
         <h1 className="mt-5 select-none font-display text-mega font-semibold leading-[0.9] tracking-tighter text-paper">
           RAISEDAO
@@ -45,8 +45,9 @@ export function Hero() {
             become visible.
           </p>
           <p className="mt-7 max-w-md font-sans text-body text-mist">
-            Founders raise into a vault that releases funds tranche by tranche — only when investors
-            vote each milestone through. Fail a milestone, and the rest refunds pro rata.
+            Founders raise into a vault that releases funds one milestone at a time, and only when
+            backers vote each milestone through. Fail a milestone, and the rest refunds in
+            proportion to what each backer put in.
           </p>
           <div className="mt-10 flex items-center gap-3 font-mono text-caption uppercase tracking-widest text-mist">
             <span className="h-px w-10 bg-data/70" />

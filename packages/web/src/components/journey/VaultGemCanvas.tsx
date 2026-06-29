@@ -56,9 +56,10 @@ export function VaultGemCanvas({ reducedMotion = false }: VaultGemCanvasProps) {
         <pointLight position={[2.5, 3, 2]} intensity={8} color="#7c5cff" />
         <pointLight position={[-2, 2.5, -2]} intensity={7} color="#ffcf6b" />
 
-        {/* Centred, seated just slightly low so the whole gem + gold pour stay in
-            frame and the upper captions still clear it. */}
-        <group position={[0, -0.15, 0]}>
+        {/* Seated just slightly low (so the gem + gold pour stay in frame) and
+            nudged right, so the diamond and the left-edge captions read as a
+            balanced pair rather than the gem sitting dead-centre. */}
+        <group position={[0.62, -0.15, 0]}>
           <VaultGem reducedMotion={reducedMotion} quality={mobile ? 'low' : 'high'} />
         </group>
 
