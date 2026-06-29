@@ -18,6 +18,7 @@ const draftSchema = new Schema(
     founder: { type: String, required: true, lowercase: true, index: true }, // wallet address
     title: { type: String, required: true },
     summary: { type: String, default: '' },
+    image: { type: String, default: '' }, // optional cover image URL
     raiseTarget: { type: String, required: true }, // USDC, decimal string
     fundingDurationDays: { type: Number, required: true, min: 1 },
     tokenName: { type: String, required: true },

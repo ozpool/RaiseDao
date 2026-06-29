@@ -17,6 +17,7 @@ export interface CampaignSummary {
   status: string;
   title: string;
   summary: string;
+  image?: string;
   city: string;
   category: string;
   verified: boolean;
@@ -83,6 +84,7 @@ function toSummary(c: CampaignDoc): CampaignSummary {
     status: c.status,
     title: c.title,
     summary: c.summary,
+    image: c.image ?? '',
     city: c.city,
     category: c.category,
     verified: c.verified,

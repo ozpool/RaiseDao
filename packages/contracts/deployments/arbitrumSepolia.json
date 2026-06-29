@@ -1,0 +1,11 @@
+{
+  "network": "arbitrumSepolia",
+  "factory": "0xb88bb092A575d6CE82FbaDcC9a0216aE5BD1a765",
+  "usdc": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+  "feeRecipient": "0xB32dC003fb972Ab424a2507A252fb765DeA98358",
+  "protocolFeeBps": 200,
+  "govTokenImpl": "0x5B82ceDB05076B6aA947Ede31F0C4853898d0c37",
+  "vaultImpl": "0xE2d5c1084C2293486D2b8D82d7965916Aa036D0e",
+  "timelockDeployer": "0x703A065Ec94DDDe79F8477b5F036e068CBA78889",
+  "governorDeployer": "0xE640933cb94b1DCC967a3d188bc85AF5365d4bdF"
+}

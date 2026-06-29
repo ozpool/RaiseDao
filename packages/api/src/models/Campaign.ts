@@ -39,6 +39,7 @@ const campaignSchema = new Schema(
     // until that pipeline fills them. raiseTarget is the soft goal, decimal USDC.
     title: { type: String, default: '' },
     summary: { type: String, default: '' },
+    image: { type: String, default: '' }, // optional cover image URL for browse/detail
     city: { type: String, default: '' },
     category: { type: String, default: '' },
     raiseTarget: { type: String, default: '0' },

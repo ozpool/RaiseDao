@@ -19,6 +19,7 @@ const createBody = z
     governor: address,
     title: z.string().min(1).max(120),
     summary: z.string().max(2000).default(''),
+    image: z.string().max(2048).default(''),
     raiseTarget: decimal,
     fundingDeadline: z.number().int().min(0),
     milestones: z
@@ -101,6 +102,7 @@ export function campaignsRouter(store: CampaignStore, verifyFounder: FounderVeri
       status: 'funding',
       title: b.title,
       summary: b.summary,
+      image: b.image,
       city: '', // the wizard doesn't collect these yet; left blank, not faked
       category: '',
       verified: false,
