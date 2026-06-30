@@ -13,8 +13,10 @@ services:
     plan: free
     region: oregon
     rootDir: .
-    # pnpm is provided via corepack; only the api workspace is built.
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm -F @raisedao/api build
+    # pnpm is provided via corepack. --prod=false forces devDependencies (the
+    # TypeScript compiler and @types/*) to install even though NODE_ENV is
+    # production, so the build can run; the shared workspace builds before api.
+    buildCommand: corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm -F @raisedao/shared build && pnpm -F @raisedao/api build
     startCommand: pnpm -F @raisedao/api start
     healthCheckPath: /health
     autoDeploy: true
